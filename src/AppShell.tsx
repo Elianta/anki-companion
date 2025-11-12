@@ -1,39 +1,47 @@
-import { Link, Outlet } from "@tanstack/react-router";
+import { Link, Outlet } from "@tanstack/react-router"
 
 const NAV_LINKS = [
   { to: "/", label: "Слово" },
   { to: "/senses", label: "Значения" },
   { to: "/draft", label: "Черновик" },
   { to: "/export", label: "Экспорт" },
-];
+]
 
 export function AppShell() {
   return (
-    <div className="app-shell">
-      <header className="app-header">
-        <div>
-          <p className="app-title">Anki Companion</p>
-          <p className="app-subtitle">EN→RU / PL→RU</p>
+    <div className="flex min-h-svh flex-col bg-slate-950 text-slate-50">
+      <header className="border-b border-white/5 bg-slate-950/80 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-6 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+              Anki Companion
+            </p>
+            <p className="text-2xl font-semibold text-white">EN→RU · PL→RU</p>
+            <p className="text-sm text-slate-400">
+              Рабочее место для подготовки карточек перед экспортом в Anki.
+            </p>
+          </div>
+          <nav className="flex flex-wrap gap-2">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                activeProps={{
+                  "data-active": true,
+                }}
+                className="rounded-full border border-white/10 px-4 py-1.5 text-sm font-medium text-slate-300 transition hover:text-white data-[active=true]:border-white data-[active=true]:bg-white/10 data-[active=true]:text-white"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
         </div>
-        <nav className="app-nav">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className="nav-link"
-              activeProps={{
-                className: "nav-link nav-link-active",
-                "aria-current": "page",
-              }}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
       </header>
-      <main className="app-main">
-        <Outlet />
+      <main className="flex-1">
+        <div className="mx-auto flex max-w-6xl flex-1 flex-col px-4 py-10 sm:px-6 lg:px-8">
+          <Outlet />
+        </div>
       </main>
     </div>
-  );
+  )
 }
