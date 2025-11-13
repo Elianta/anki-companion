@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @layer base {
   :root {
@@ -48,8 +48,7 @@
 }
 
 @theme inline {
-  --font-sans: "Inter", "SF Pro Display", "Segoe UI", system-ui, -apple-system,
-    sans-serif;
+  --font-sans: 'Inter', 'SF Pro Display', 'Segoe UI', system-ui, -apple-system, sans-serif;
   --color-background: oklch(var(--background) / <alpha-value>);
   --color-foreground: oklch(var(--foreground) / <alpha-value>);
   --color-card: oklch(var(--card) / <alpha-value>);
@@ -59,17 +58,13 @@
   --color-primary: oklch(var(--primary) / <alpha-value>);
   --color-primary-foreground: oklch(var(--primary-foreground) / <alpha-value>);
   --color-secondary: oklch(var(--secondary) / <alpha-value>);
-  --color-secondary-foreground: oklch(
-    var(--secondary-foreground) / <alpha-value>
-  );
+  --color-secondary-foreground: oklch(var(--secondary-foreground) / <alpha-value>);
   --color-muted: oklch(var(--muted) / <alpha-value>);
   --color-muted-foreground: oklch(var(--muted-foreground) / <alpha-value>);
   --color-accent: oklch(var(--accent) / <alpha-value>);
   --color-accent-foreground: oklch(var(--accent-foreground) / <alpha-value>);
   --color-destructive: oklch(var(--destructive) / <alpha-value>);
-  --color-destructive-foreground: oklch(
-    var(--destructive-foreground) / <alpha-value>
-  );
+  --color-destructive-foreground: oklch(var(--destructive-foreground) / <alpha-value>);
   --color-border: oklch(var(--border) / <alpha-value>);
   --color-input: oklch(var(--input) / <alpha-value>);
   --color-ring: oklch(var(--ring) / <alpha-value>);

@@ -1,21 +1,18 @@
-export type LangPair = "EN" | "PL"
+export type LangPair = 'EN' | 'PL';
 
 export type Sense = {
-  id: string
-  gloss: string
-  notes?: string
-}
+  id: string;
+  gloss: string;
+  notes?: string;
+};
 
 export type DisambiguateResult = {
-  term: string
-  langPair: LangPair
-  senses: Sense[]
-}
+  term: string;
+  langPair: LangPair;
+  senses: Sense[];
+};
 
-export async function disambiguate(
-  term: string,
-  langPair: LangPair
-): Promise<DisambiguateResult> {
+export async function disambiguate(term: string, langPair: LangPair): Promise<DisambiguateResult> {
   return Promise.resolve({
     term,
     langPair,
@@ -29,5 +26,5 @@ export async function disambiguate(
         gloss: `${term} (${langPair}) · alternate reading`,
       },
     ],
-  })
+  });
 }

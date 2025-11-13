@@ -1,18 +1,18 @@
-import { Link, Outlet, useRouterState } from "@tanstack/react-router"
-import { LanguageSelect } from "@/components/LanguageSelect"
+import { Link, Outlet, useRouterState } from '@tanstack/react-router';
+import { LanguageSelect } from '@/components/LanguageSelect';
 
 const NAV_LINKS = [
-  { to: "/", label: "Слово" },
-  { to: "/senses", label: "Значения" },
-  { to: "/draft", label: "Черновик" },
-  { to: "/export", label: "Экспорт" },
-]
+  { to: '/', label: 'Слово' },
+  { to: '/senses', label: 'Значения' },
+  { to: '/draft', label: 'Черновик' },
+  { to: '/export', label: 'Экспорт' },
+];
 
 export function AppShell() {
   const { location } = useRouterState({
     select: (state) => ({ location: state.location }),
-  })
-  const isHomeRoute = location.pathname === "/"
+  });
+  const isHomeRoute = location.pathname === '/';
 
   return (
     <div className="flex min-h-svh flex-col bg-slate-950 text-slate-50">

@@ -1,24 +1,24 @@
-import { create } from "zustand"
-import type { LangPair, Sense } from "@/lib/llm"
+import { create } from 'zustand';
+import type { LangPair, Sense } from '@/lib/llm';
 
 type SessionSnapshot = {
-  term: string
-  language: LangPair
-  senses: Sense[]
-}
+  term: string;
+  language: LangPair;
+  senses: Sense[];
+};
 
 export type SessionState = SessionSnapshot & {
-  setLanguage: (language: LangPair) => void
-  setTerm: (term: string) => void
-  setSenses: (senses: Sense[]) => void
-  reset: () => void
-}
+  setLanguage: (language: LangPair) => void;
+  setTerm: (term: string) => void;
+  setSenses: (senses: Sense[]) => void;
+  reset: () => void;
+};
 
 export const createSessionSnapshot = (): SessionSnapshot => ({
-  term: "",
-  language: "EN",
+  term: '',
+  language: 'EN',
   senses: [],
-})
+});
 
 export const useSessionStore = create<SessionState>((set) => ({
   ...createSessionSnapshot(),
@@ -26,4 +26,4 @@ export const useSessionStore = create<SessionState>((set) => ({
   setTerm: (term) => set({ term }),
   setSenses: (senses) => set({ senses }),
   reset: () => set(createSessionSnapshot()),
-}))
+}));
