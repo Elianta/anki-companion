@@ -15,17 +15,12 @@ export function AppShell() {
   const isHomeRoute = location.pathname === '/';
 
   return (
-    <div className="flex min-h-svh flex-col bg-slate-950 text-slate-50">
-      <header className="border-b border-white/5 bg-slate-950/80 backdrop-blur">
+    <div className="flex min-h-svh flex-col bg-background text-foreground">
+      <header className="border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-3">
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
-              Anki Companion
-            </p>
-            <LanguageSelect
-              className="w-full sm:w-auto"
-              disabled={!isHomeRoute}
-            />
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Anki Companion</p>
+            <LanguageSelect className="w-full sm:w-auto" disabled={!isHomeRoute} />
           </div>
           <nav className="flex flex-wrap gap-2">
             {NAV_LINKS.map((link) => (
@@ -33,9 +28,9 @@ export function AppShell() {
                 key={link.to}
                 to={link.to}
                 activeProps={{
-                  "data-active": true,
+                  'data-active': true,
                 }}
-                className="rounded-full border border-white/10 px-4 py-1.5 text-sm font-medium text-slate-300 transition hover:text-white data-[active=true]:border-white data-[active=true]:bg-white/10 data-[active=true]:text-white"
+                className="rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-600 transition hover:border-slate-900/20 hover:text-slate-900 data-[active=true]:border-slate-900 data-[active=true]:bg-slate-900 data-[active=true]:text-white"
               >
                 {link.label}
               </Link>
@@ -49,5 +44,5 @@ export function AppShell() {
         </div>
       </main>
     </div>
-  )
+  );
 }

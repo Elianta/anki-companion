@@ -1,25 +1,19 @@
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 export function DraftScreen() {
   return (
     <section className="space-y-6">
-      <Card className="bg-slate-900/30">
+      <Card className="bg-white shadow-sm">
         <CardHeader>
           <CardTitle>Черновик карточки</CardTitle>
           <CardDescription>
-            Заполните поля перед экспортом. Пока что элементы отключены и
-            показывают целевую структуру карточки.
+            Заполните поля перед экспортом. Пока что элементы отключены и показывают целевую
+            структуру карточки.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -34,19 +28,11 @@ export function DraftScreen() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="draft-translation">Перевод</Label>
-              <Input
-                id="draft-translation"
-                placeholder="осколок, фрагмент"
-                disabled
-              />
+              <Input id="draft-translation" placeholder="осколок, фрагмент" disabled />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="draft-tags">Теги / колоды</Label>
-              <Input
-                id="draft-tags"
-                placeholder="anki::vocab, ru::reading"
-                disabled
-              />
+              <Input id="draft-tags" placeholder="anki::vocab, ru::reading" disabled />
             </div>
           </div>
 
@@ -69,8 +55,7 @@ export function DraftScreen() {
               disabled
             />
             <p className="text-sm text-muted-foreground">
-              В будущем сюда можно будет подтягивать предложенные примеры из LLM и
-              редактировать их.
+              В будущем сюда можно будет подтягивать предложенные примеры из LLM и редактировать их.
             </p>
           </div>
 
@@ -83,7 +68,7 @@ export function DraftScreen() {
             </p>
           </div>
         </CardContent>
-        <CardContent className="border-t border-white/5 pt-6">
+        <CardContent className="border-t border-slate-200 pt-6">
           <div className="flex flex-wrap gap-3">
             <Button type="button" variant="outline" disabled>
               Очистить
@@ -95,5 +80,5 @@ export function DraftScreen() {
         </CardContent>
       </Card>
     </section>
-  )
+  );
 }
