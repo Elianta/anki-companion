@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 
 const buildSystemPrompt = (sourceLanguage: SourceLanguage) =>
@@ -109,21 +111,29 @@ export const SIMPLE_SCHEMA_EN = createSimpleSchema({
   targetLanguage: 'ru',
 });
 
-export interface SimpleTranslationEntry {
-  raw_input: string;
-  source_word: string;
-  source_language: SourceLanguage;
-  target_language: 'ru';
-  senses: Array<{
-    translation: string;
-    part_of_speech: string | null;
-    sense_note: string | null;
-    usage_frequency: null | {
-      level: 'low' | 'medium' | 'high';
-      comment?: string;
-    };
-  }>;
-}
+export const translationEntrySchema = z.object({
+  raw_input: z.string(),
+  source_word: z.string(),
+  source_language: z.union([z.literal('pl'), z.literal('en')]),
+  target_language: z.literal('ru'),
+  senses: z
+    .array(
+      z.object({
+        translation: z.string(),
+        part_of_speech: z.string().nullable(),
+        sense_note: z.string().nullable(),
+        usage_frequency: z
+          .object({
+            level: z.enum(['low', 'medium', 'high']),
+            comment: z.string().optional(),
+          })
+          .nullable(),
+      }),
+    )
+    .default([]),
+});
+
+export type SimpleTranslationEntry = z.infer<typeof translationEntrySchema>;
 
 type OpenRouterResponse = {
   choices?: Array<{
@@ -181,8 +191,8 @@ const fetchTranslations = async (
   }
 
   try {
-    const parsed = JSON.parse(content) as SimpleTranslationEntry;
-    return { ...parsed, senses: parsed.senses ?? [] };
+    const parsedJson = JSON.parse(content);
+    return translationEntrySchema.parse(parsedJson);
   } catch {
     throw new Error('Unable to parse OpenAI response');
   }
