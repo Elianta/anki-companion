@@ -15,6 +15,7 @@ Do NOT echo the square brackets text in translations; use it only to pick the co
 Task:
 Given one ${sourceLanguage === 'pl' ? 'Polish' : 'English'} word or short phrase, produce Russian translations.
 If multiple distinct senses exist, return multiple sense entries.
+Provide several example sentences (1 or 2) in ${sourceLanguage === 'pl' ? 'Polish' : 'English'} with Russian translations.
 Output MUST be valid JSON ONLY, matching exactly the schema below. No prose, no markdown.`;
 
 type SourceLanguage = 'pl' | 'en';
@@ -88,8 +89,39 @@ const createSimpleSchema = ({ name, sourceLanguage, targetLanguage }: SimpleSche
                 required: ['level', 'comment'],
                 additionalProperties: false,
               },
+              examples: {
+                type: 'array',
+                description: 'Example sentences with translations.',
+                items: {
+                  type: 'object',
+                  additionalProperties: false,
+                  required: sourceLanguage === 'pl' ? ['pl', 'ru'] : ['en', 'ru'],
+                  properties:
+                    sourceLanguage === 'pl'
+                      ? {
+                          pl: { type: 'string', description: 'Sentence in Polish.' },
+                          ru: {
+                            type: 'string',
+                            description: 'Russian translation of the sentence.',
+                          },
+                        }
+                      : {
+                          en: { type: 'string', description: 'Sentence in English.' },
+                          ru: {
+                            type: 'string',
+                            description: 'Russian translation of the sentence.',
+                          },
+                        },
+                },
+              },
             },
-            required: ['translation', 'part_of_speech', 'sense_note', 'usage_frequency'],
+            required: [
+              'translation',
+              'part_of_speech',
+              'sense_note',
+              'usage_frequency',
+              'examples',
+            ],
             additionalProperties: false,
           },
         },
@@ -128,6 +160,18 @@ export const translationEntrySchema = z.object({
             comment: z.string().optional(),
           })
           .nullable(),
+        examples: z.array(
+          z.union([
+            z.object({
+              pl: z.string(),
+              ru: z.string(),
+            }),
+            z.object({
+              en: z.string(),
+              ru: z.string(),
+            }),
+          ]),
+        ),
       }),
     )
     .default([]),

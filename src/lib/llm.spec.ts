@@ -22,6 +22,10 @@ const mockEntry: SimpleTranslationEntry = {
         level: 'high',
         comment: 'часто',
       },
+      examples: [
+        { pl: 'Zamknij zamek.', ru: 'Закрой замок.' },
+        { pl: 'Zamek był zepsuty.', ru: 'Замок был сломан.' },
+      ],
     },
   ],
 };
@@ -73,6 +77,20 @@ describe('disambiguate', () => {
       raw_input: 'lock',
       source_word: 'lock',
       source_language: 'en',
+      senses: [
+        {
+          translation: 'замок',
+          part_of_speech: 'noun',
+          sense_note: 'механизм',
+          usage_frequency: {
+            level: 'high',
+          },
+          examples: [
+            { en: 'Lock the door.', ru: 'Закрой дверь на замок.' },
+            { en: 'The lock jammed.', ru: 'Замок заклинило.' },
+          ],
+        },
+      ],
     } as SimpleTranslationEntry;
     fetchEnglishMock.mockResolvedValue(entry);
 

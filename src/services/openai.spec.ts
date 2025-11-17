@@ -5,7 +5,7 @@ import {
   SIMPLE_SCHEMA_EN,
   fetchPolishTranslations,
   fetchEnglishTranslations,
-  type SimpleTranslationEntry,
+type SimpleTranslationEntry,
 } from './openai.ts';
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
@@ -54,6 +54,10 @@ describe('OpenAI translation helpers', () => {
             level: 'high',
             comment: 'часто используется',
           },
+          examples: [
+            { pl: 'Zamknij zamek w drzwiach.', ru: 'Закрой замок в двери.' },
+            { pl: 'Zamek był uszkodzony.', ru: 'Замок был поврежден.' },
+          ],
         },
       ],
     };
@@ -125,6 +129,10 @@ describe('OpenAI translation helpers', () => {
             level: 'medium',
             comment: 'используется реже, чем базовое значение',
           },
+          examples: [
+            { en: 'The castle stands on the hill.', ru: 'Замок стоит на холме.' },
+            { en: 'They toured the ancient castle.', ru: 'Они осмотрели древний замок.' },
+          ],
         },
       ],
     };
