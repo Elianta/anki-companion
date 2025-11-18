@@ -66,7 +66,7 @@ const createSimpleSchema = ({ name, sourceLanguage, targetLanguage }: SimpleSche
               },
               part_of_speech: {
                 type: ['string', 'null'],
-                description: 'Part of speech label (e.g., noun, verb, adj).',
+                description: `Part of speech label (e.g., noun, verb, adj) in ${sourceLanguage === 'pl' ? 'Polish' : 'English'} language.`,
               },
               sense_note: {
                 type: ['string', 'null'],

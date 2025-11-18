@@ -82,7 +82,7 @@ describe('HomeScreen', () => {
   it('stores the resolved senses and term', async () => {
     renderScreen();
     const input = getTermInput();
-    const senses = [{ id: 'sense-1', gloss: 'example' }];
+    const senses = [{ id: 'sense-1', translationRU: 'example' }];
     disambiguateMock.mockResolvedValue({
       term: 'focus',
       langPair: 'EN',

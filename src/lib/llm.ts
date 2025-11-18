@@ -5,8 +5,12 @@ export type LangPair = 'EN' | 'PL';
 
 export type Sense = {
   id: string;
-  gloss: string;
+  translationRU: string;
   notes?: string;
+  partOfSpeech?: string;
+  usageLevel?: 'low' | 'medium' | 'high';
+  frequencyNotes?: string;
+  examples?: string[];
 };
 
 export type DisambiguateResult = {
@@ -15,25 +19,35 @@ export type DisambiguateResult = {
   senses: Sense[];
 };
 
-const buildNotes = (sense: SimpleTranslationEntry['senses'][number]): string | undefined => {
-  const parts: string[] = [];
-  if (sense.sense_note) {
-    parts.push(sense.sense_note);
-  }
-  if (sense.usage_frequency) {
-    const freq = sense.usage_frequency.comment
-      ? `${sense.usage_frequency.level} • ${sense.usage_frequency.comment}`
-      : sense.usage_frequency.level;
-    parts.push(`freq: ${freq}`);
-  }
-  return parts.length ? parts.join(' | ') : undefined;
+const buildFrequencyNotes = (
+  sense: SimpleTranslationEntry['senses'][number],
+): string | undefined => {
+  const level =
+    sense.usage_frequency?.level === 'high'
+      ? 'высокая'
+      : sense.usage_frequency?.level === 'medium'
+        ? 'средняя'
+        : 'низкая';
+  const levelStr = level ? `частота: ${level}` : undefined;
+  const freq = sense.usage_frequency?.comment
+    ? `${levelStr} • ${sense.usage_frequency.comment}`
+    : levelStr;
+
+  return freq;
 };
 
-const buildGloss = (sense: SimpleTranslationEntry['senses'][number]): string => {
-  if (sense.part_of_speech) {
-    return `${sense.translation} (${sense.part_of_speech})`;
-  }
-  return sense.translation;
+const buildExamples = (sense: SimpleTranslationEntry['senses'][number]): string[] | undefined => {
+  return sense.examples
+    .map((example) => {
+      if ('pl' in example) {
+        return `${example.pl} — ${example.ru}`;
+      }
+      if ('en' in example) {
+        return `${example.en} — ${example.ru}`;
+      }
+      return '';
+    })
+    .filter(Boolean);
 };
 
 const mapEntryToResult = (
@@ -44,17 +58,23 @@ const mapEntryToResult = (
   langPair,
   senses: (entry.senses ?? []).map((sense, index) => ({
     id: `${entry.source_word}-${index + 1}`,
-    gloss: buildGloss(sense),
-    notes: buildNotes(sense),
+    translationRU: sense.translation,
+    notes: sense.sense_note || undefined,
+    partOfSpeech: sense.part_of_speech || undefined,
+    usageLevel: sense.usage_frequency?.level,
+    frequencyNotes: buildFrequencyNotes(sense),
+    examples: buildExamples(sense),
   })),
 });
 
 export async function disambiguate(term: string, langPair: LangPair): Promise<DisambiguateResult> {
   if (langPair === 'PL') {
     const entry = await fetchPolishTranslations(term);
+    console.log('Polish entry:', entry);
     return mapEntryToResult(entry, langPair);
   }
 
   const entry = await fetchEnglishTranslations(term);
+  console.log('English entry:', entry);
   return mapEntryToResult(entry, langPair);
 }

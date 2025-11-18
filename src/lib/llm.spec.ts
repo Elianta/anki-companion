@@ -3,10 +3,15 @@ import { disambiguate } from './llm';
 import type { SimpleTranslationEntry } from '@/services/openai';
 import { fetchEnglishTranslations, fetchPolishTranslations } from '@/services/openai';
 
-vi.mock(import('@/services/openai'), () => ({
-  fetchPolishTranslations: vi.fn(),
-  fetchEnglishTranslations: vi.fn(),
-}));
+vi.mock(import('@/services/openai'), async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    fetchPolishTranslations: vi.fn(),
+    fetchEnglishTranslations: vi.fn(),
+    translationEntrySchema: actual.translationEntrySchema,
+  };
+});
 
 const mockEntry: SimpleTranslationEntry = {
   raw_input: 'zamek [do drzwi]',
@@ -60,14 +65,13 @@ describe('disambiguate', () => {
     result.senses.forEach((sense, index) => {
       expect(typeof sense.id).toBe('string');
       expect(sense.id).toBe(`${mockEntry.source_word}-${index + 1}`);
-      expect(typeof sense.gloss).toBe('string');
+      expect(typeof sense.translationRU).toBe('string');
 
       const originalSense = mockEntry.senses![index];
-      if (originalSense.part_of_speech) {
-        expect(sense.gloss).toContain(`(${originalSense.part_of_speech})`);
-      }
-
       expect(typeof sense.notes).toBe('string');
+      expect(sense.partOfSpeech).toBe(originalSense.part_of_speech);
+      expect(sense.usageLevel).toBe(originalSense.usage_frequency?.level);
+      expect(sense.examples?.length).toBeGreaterThan(0);
     });
   });
 
@@ -109,10 +113,11 @@ describe('disambiguate', () => {
     const [sense] = result.senses;
     expect(typeof sense.id).toBe('string');
     expect(sense.id).toBe(`${entry.source_word}-1`);
-    expect(typeof sense.gloss).toBe('string');
-    expect(sense.gloss).toContain(entry.senses[0]!.translation);
-    expect(sense.gloss).toContain('(noun)');
+    expect(typeof sense.translationRU).toBe('string');
+    expect(sense.translationRU).toBe(entry.senses[0]!.translation);
     expect(typeof sense.notes).toBe('string');
+    expect(sense.partOfSpeech).toBe('noun');
+    expect(sense.examples?.length).toBe(2);
   });
 
   it('returns empty senses array when entry.senses is empty', async () => {
