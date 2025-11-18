@@ -62,7 +62,13 @@ export function SensesScreen() {
                 ) : null}
                 <ul className="mt-3 space-y-2 text-sm text-slate-700">
                   {sense.examples?.map((example) => (
-                    <li key={example} className="rounded-md bg-slate-100 p-3 text-slate-900">
+                    <li
+                      key={example}
+                      className={cn(
+                        'rounded-md p-3 text-slate-900',
+                        isSelected ? 'bg-primary/10' : 'bg-slate-100',
+                      )}
+                    >
                       {example}
                     </li>
                   ))}
