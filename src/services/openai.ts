@@ -15,6 +15,7 @@ Do NOT echo the square brackets text in translations; use it only to pick the co
 Task:
 Given one ${sourceLanguage === 'pl' ? 'Polish' : 'English'} word or short phrase, produce Russian translations.
 If multiple distinct senses exist, return multiple sense entries.
+If input is not a valid word or phrase in ${sourceLanguage === 'pl' ? 'Polish' : 'English'}, return an empty senses array.
 Provide several example sentences (1 or 2) in ${sourceLanguage === 'pl' ? 'Polish' : 'English'} with Russian translations.
 Output MUST be valid JSON ONLY, matching exactly the schema below. No prose, no markdown.`;
 
