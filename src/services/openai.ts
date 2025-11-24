@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
+export const OPENAI_MODEL = 'gpt-4.1-mini';
 
 const buildSystemPrompt = (sourceLanguage: SourceLanguage) =>
   `You are a bilingual lexicographer (${sourceLanguage === 'pl' ? 'Polish' : 'English'} → Russian).
@@ -197,11 +198,7 @@ const resolveApiKey = (): string | undefined => {
   return import.meta.env.VITE_OPENAI_API_KEY;
 };
 
-const fetchTranslations = async (
-  rawInput: string,
-  sourceLanguage: SourceLanguage,
-  schema: ReturnType<typeof createSimpleSchema>,
-): Promise<SimpleTranslationEntry> => {
+export const requestJsonCompletion = async (body: Record<string, unknown>): Promise<string> => {
   const apiKey = resolveApiKey();
   if (!apiKey) {
     throw new Error('Missing OpenAI API key');
@@ -210,18 +207,7 @@ const fetchTranslations = async (
   const response = await fetch(OPENAI_URL, {
     method: 'POST',
     headers: buildHeaders(apiKey),
-    body: JSON.stringify({
-      model: 'gpt-4.1-mini',
-      temperature: 0.2,
-      response_format: {
-        type: 'json_schema',
-        json_schema: schema,
-      },
-      messages: [
-        { role: 'system', content: buildSystemPrompt(sourceLanguage) },
-        { role: 'user', content: rawInput },
-      ],
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
@@ -234,6 +220,27 @@ const fetchTranslations = async (
   if (!content) {
     throw new Error('OpenAI returned an empty response');
   }
+
+  return content;
+};
+
+const fetchTranslations = async (
+  rawInput: string,
+  sourceLanguage: SourceLanguage,
+  schema: ReturnType<typeof createSimpleSchema>,
+): Promise<SimpleTranslationEntry> => {
+  const content = await requestJsonCompletion({
+    model: OPENAI_MODEL,
+    temperature: 0.2,
+    response_format: {
+      type: 'json_schema',
+      json_schema: schema,
+    },
+    messages: [
+      { role: 'system', content: buildSystemPrompt(sourceLanguage) },
+      { role: 'user', content: rawInput },
+    ],
+  });
 
   try {
     const parsedJson = JSON.parse(content);

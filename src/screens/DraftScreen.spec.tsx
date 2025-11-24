@@ -1,10 +1,25 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DraftScreen } from './DraftScreen';
 import type { Sense } from '@/lib/llm';
 import { clearDrafts, saveDraftFromSense } from '@/services/draft-storage';
+import type { DraftEntry } from '@/lib/db';
+
+const mockCardPayload = {
+  fields: { Word: 'mock' },
+  schemaName: 'mock-schema',
+  prompt: 'prompt',
+};
+
+vi.mock('@/services/card-generator', () => ({
+  generateCardPayload: vi.fn(async ({ draft }: { draft: DraftEntry }) => ({
+    ...mockCardPayload,
+    noteType: draft.noteType,
+    generatedAt: '2024-01-01T00:00:00.000Z',
+  })),
+}));
 
 const buildSense = (overrides: Partial<Sense> = {}): Sense => ({
   id: overrides.id ?? 'sense-1',
@@ -18,13 +33,14 @@ const buildSense = (overrides: Partial<Sense> = {}): Sense => ({
 describe('DraftScreen', () => {
   beforeEach(async () => {
     await clearDrafts();
+    vi.clearAllMocks();
   });
 
   it('renders empty state when no drafts are present', async () => {
     render(<DraftScreen />);
 
     await waitFor(() =>
-      expect(screen.getByText(/No drafts yet\. Open the “Senses” tab/i)).toBeInTheDocument(),
+      expect(screen.getByText(/No drafts yet\. Open the "Senses" tab/i)).toBeInTheDocument(),
     );
   });
 
@@ -62,6 +78,7 @@ describe('DraftScreen', () => {
     expect(screen.getByText('drugi')).toBeInTheDocument();
     expect(screen.getByText('second note')).toBeInTheDocument();
     expect(screen.getByText('verb')).toBeInTheDocument();
+    expect(screen.getAllByText('Card ready')).toHaveLength(2);
   });
 
   it('allows changing note type and removing a draft', async () => {

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { RefreshCwIcon } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ import {
 import type { DraftEntry, DraftNoteType } from '@/lib/db';
 import {
   fetchDrafts,
+  generateCardForDraft,
   getNoteTypesForLanguage,
   removeDraft,
   updateDraftNoteType,
@@ -23,42 +25,63 @@ export function DraftScreen() {
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [generatingIds, setGeneratingIds] = useState<Set<number>>(new Set());
+
+  const loadDrafts = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const storedDrafts = await fetchDrafts();
+      setDrafts(storedDrafts);
+    } catch (err) {
+      console.warn('Failed to load drafts', err);
+      setError('Failed to load drafts. Refresh the page.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    let isMounted = true;
-
-    const loadDrafts = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const storedDrafts = await fetchDrafts();
-        if (isMounted) {
-          setDrafts(storedDrafts);
-        }
-      } catch (err) {
-        console.warn('Failed to load drafts', err);
-        if (isMounted) {
-          setError('Failed to load drafts. Refresh the page.');
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
     loadDrafts();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  }, [loadDrafts]);
+
+  const refreshDraft = async () => {
+    const storedDrafts = await fetchDrafts();
+    setDrafts(storedDrafts);
+  };
+
+  const setGenerating = (draftId: number, active: boolean) => {
+    setGeneratingIds((prev) => {
+      const next = new Set(prev);
+      if (active) {
+        next.add(draftId);
+      } else {
+        next.delete(draftId);
+      }
+      return next;
+    });
+  };
+
+  const triggerCardGeneration = async (draftId: number) => {
+    setGenerating(draftId, true);
+    try {
+      await generateCardForDraft(draftId);
+      await refreshDraft();
+    } catch (err) {
+      console.warn('Failed to generate card', err);
+      setError('Failed to generate card.');
+    } finally {
+      setGenerating(draftId, false);
+    }
+  };
 
   const handleNoteTypeChange = async (draftId: number, noteType: DraftNoteType) => {
     setDrafts((prev) =>
-      prev.map((draft) => (draft.id === draftId ? { ...draft, noteType } : draft)),
+      prev.map((draft) => (draft.id === draftId ? { ...draft, noteType, card: null } : draft)),
     );
     try {
       await updateDraftNoteType(draftId, noteType);
+      await triggerCardGeneration(draftId);
     } catch (err) {
       console.warn('Failed to update note type', err);
       setError('Failed to update note type.');
@@ -87,13 +110,13 @@ export function DraftScreen() {
           <CardDescription>Manage saved senses before exporting.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {isLoading ? <p className="text-sm text-muted-foreground">Loading drafts…</p> : null}
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
-          {!isLoading && !hasDrafts ? (
+          {isLoading && <p className="text-sm text-muted-foreground">Loading drafts…</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          {!isLoading && !hasDrafts && (
             <p className="text-sm text-muted-foreground">
-              No drafts yet. Open the “Senses” tab, pick a sense, and save it.
+              No drafts yet. Open the "Senses" tab, pick a sense, and save it.
             </p>
-          ) : null}
+          )}
 
           <div className="grid gap-4">
             {drafts.map((draft) => {
@@ -110,9 +133,9 @@ export function DraftScreen() {
                         <Badge variant="secondary" className="uppercase">
                           {draft.language}
                         </Badge>
-                        {draft.partOfSpeech ? (
+                        {draft.sense.partOfSpeech ? (
                           <Badge variant="outline" className="uppercase">
-                            {draft.partOfSpeech}
+                            {draft.sense.partOfSpeech}
                           </Badge>
                         ) : null}
                       </div>
@@ -122,6 +145,31 @@ export function DraftScreen() {
                         </p>
                         <p className="text-lg font-semibold text-slate-900">{draft.term}</p>
                       </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {draft.card ? (
+                        <Badge variant="default">Card ready</Badge>
+                      ) : generatingIds.has(draft.id ?? -1) ? (
+                        <Badge variant="outline">Generating…</Badge>
+                      ) : (
+                        <Badge
+                          variant="secondary"
+                          className="flex items-center gap-2 pr-1"
+                          data-test-id={`card-pending-${draft.id}`}
+                        >
+                          Card pending
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-4 w-4 text-slate-700"
+                            aria-label="Regenerate card"
+                            onClick={() => draft.id && triggerCardGeneration(draft.id)}
+                          >
+                            <RefreshCwIcon className="h-4 w-4" />
+                          </Button>
+                        </Badge>
+                      )}
                     </div>
                     <Button
                       type="button"
@@ -140,15 +188,13 @@ export function DraftScreen() {
                       <p className="text-xs uppercase tracking-wide text-muted-foreground">
                         Translation
                       </p>
-                      <p className="text-sm text-slate-900">{draft.translation}</p>
+                      <p className="text-sm text-slate-900">{draft.sense.translationRU}</p>
                     </div>
                     <div className="space-y-1">
                       <p className="text-xs uppercase tracking-wide text-muted-foreground">
                         Sense note
                       </p>
-                      <p className="text-sm text-slate-900">
-                        {draft.senseNote ? draft.senseNote : '—'}
-                      </p>
+                      <p className="text-sm text-slate-900">{draft.sense.notes ?? '—'}</p>
                     </div>
                   </div>
 

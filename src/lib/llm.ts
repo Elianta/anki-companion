@@ -70,11 +70,9 @@ const mapEntryToResult = (
 export async function disambiguate(term: string, langPair: LangPair): Promise<DisambiguateResult> {
   if (langPair === 'PL') {
     const entry = await fetchPolishTranslations(term);
-    console.log('Polish entry:', entry);
     return mapEntryToResult(entry, langPair);
   }
 
   const entry = await fetchEnglishTranslations(term);
-  console.log('English entry:', entry);
   return mapEntryToResult(entry, langPair);
 }

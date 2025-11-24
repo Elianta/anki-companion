@@ -1,5 +1,6 @@
 import { db, type DraftEntry, type DraftNoteType } from '@/lib/db';
 import type { LangPair, Sense } from '@/lib/llm';
+import { generateCardPayload } from '@/services/card-generator';
 
 const NOTE_TYPES_BY_LANGUAGE: Record<LangPair, DraftNoteType[]> = {
   EN: ['EN: Default'],
@@ -25,11 +26,9 @@ export async function saveDraftFromSense({ sense, term, language }: SaveDraftPar
   const baseEntry: DraftEntry = {
     term,
     language,
-    translation: sense.translationRU,
-    senseNote: sense.notes,
-    partOfSpeech: sense.partOfSpeech,
-    senseId: sense.id,
     noteType: getDefaultNoteType(language),
+    sense,
+    card: null,
   };
 
   const existing = await db.drafts
@@ -38,11 +37,16 @@ export async function saveDraftFromSense({ sense, term, language }: SaveDraftPar
     .filter((entry) => entry.language === language)
     .first();
 
-  if (existing?.id !== undefined) {
+  if (existing) {
+    if (!existing.card) {
+      await generateCardForDraft(existing.id!);
+    }
     return existing.id;
   }
 
-  return db.drafts.add(baseEntry);
+  const draftId = await db.drafts.add(baseEntry);
+  await generateCardForDraft(draftId);
+  return draftId;
 }
 
 export async function fetchDrafts(): Promise<DraftEntry[]> {
@@ -50,7 +54,7 @@ export async function fetchDrafts(): Promise<DraftEntry[]> {
 }
 
 export async function updateDraftNoteType(id: number, noteType: DraftNoteType) {
-  await db.drafts.update(id, { noteType });
+  await db.drafts.update(id, { noteType, card: null });
 }
 
 export async function removeDraft(id: number) {
@@ -59,4 +63,15 @@ export async function removeDraft(id: number) {
 
 export async function clearDrafts() {
   await db.drafts.clear();
+}
+
+export async function generateCardForDraft(id: number) {
+  const draft = await db.drafts.get(id);
+  if (!draft) {
+    return;
+  }
+
+  const card = await generateCardPayload({ draft });
+  await db.drafts.update(id, { card });
+  return { ...draft, card } as DraftEntry;
 }
