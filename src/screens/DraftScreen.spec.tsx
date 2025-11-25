@@ -5,7 +5,23 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DraftScreen } from './DraftScreen';
 import type { Sense } from '@/lib/llm';
 import { clearDrafts, saveDraftFromSense } from '@/services/draft-storage';
+import * as exportStorage from '@/services/export-storage';
 import type { DraftEntry } from '@/lib/db';
+
+const { navigateMock, toastErrorMock } = vi.hoisted(() => ({
+  navigateMock: vi.fn(),
+  toastErrorMock: vi.fn(),
+}));
+
+vi.mock('@tanstack/react-router', () => ({
+  useNavigate: () => navigateMock,
+}));
+
+vi.mock('sonner', () => ({
+  toast: {
+    error: toastErrorMock,
+  },
+}));
 
 const mockCardPayload = {
   fields: { Word: 'mock' },
@@ -33,7 +49,11 @@ const buildSense = (overrides: Partial<Sense> = {}): Sense => ({
 describe('DraftScreen', () => {
   beforeEach(async () => {
     await clearDrafts();
+    await exportStorage.clearExportGroups();
     vi.clearAllMocks();
+    navigateMock.mockReset();
+    navigateMock.mockResolvedValue(undefined);
+    toastErrorMock.mockReset();
   });
 
   it('renders empty state when no drafts are present', async () => {
@@ -104,5 +124,63 @@ describe('DraftScreen', () => {
     await waitFor(() =>
       expect(screen.queryByTestId(`draft-item-${plDraftId}`)).not.toBeInTheDocument(),
     );
+  });
+
+  it('exports selected drafts and disables exported items', async () => {
+    const enId = await saveDraftFromSense({
+      sense: buildSense({ id: 'en-1', translationRU: 'hello ru', partOfSpeech: 'noun' }),
+      term: 'hello',
+      language: 'EN',
+    });
+    const plId = await saveDraftFromSense({
+      sense: buildSense({ id: 'pl-1', translationRU: 'cześć', partOfSpeech: 'verb' }),
+      term: 'cześć',
+      language: 'PL',
+    });
+
+    const user = userEvent.setup();
+    render(<DraftScreen />);
+
+    const selectAll = await screen.findByTestId('select-all-drafts');
+    await user.click(selectAll);
+
+    const exportButton = screen.getByTestId('export-button');
+    await user.click(exportButton);
+
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith({ to: '/export' }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId(`exported-badge-${enId}`)).toBeInTheDocument();
+      expect(screen.getByTestId(`exported-badge-${plId}`)).toBeInTheDocument();
+    });
+
+    const enCheckbox = screen.getByTestId(`select-draft-${enId}`) as HTMLInputElement;
+    const plCheckbox = screen.getByTestId(`select-draft-${plId}`) as HTMLInputElement;
+    expect(enCheckbox.disabled).toBe(true);
+    expect(plCheckbox.disabled).toBe(true);
+  });
+
+  it('shows toast on export error', async () => {
+    vi.spyOn(exportStorage, 'createExportGroupFromDrafts').mockRejectedValueOnce(
+      new Error('Export failed'),
+    );
+
+    const draftId = await saveDraftFromSense({
+      sense: buildSense({ id: 'err-1', translationRU: 'oops', partOfSpeech: 'noun' }),
+      term: 'oops',
+      language: 'EN',
+    });
+
+    const user = userEvent.setup();
+    render(<DraftScreen />);
+
+    const draftCheckbox = await screen.findByTestId(`select-draft-${draftId}`);
+    await user.click(draftCheckbox);
+
+    const exportButton = screen.getByTestId('export-button');
+    await user.click(exportButton);
+
+    await waitFor(() => expect(toastErrorMock).toHaveBeenCalled());
+    expect(navigateMock).not.toHaveBeenCalled();
   });
 });

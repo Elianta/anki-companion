@@ -29,6 +29,8 @@ export async function saveDraftFromSense({ sense, term, language }: SaveDraftPar
     noteType: getDefaultNoteType(language),
     sense,
     card: null,
+    exported: false,
+    exportedAt: null,
   };
 
   const existing = await db.drafts
@@ -50,11 +52,16 @@ export async function saveDraftFromSense({ sense, term, language }: SaveDraftPar
 }
 
 export async function fetchDrafts(): Promise<DraftEntry[]> {
-  return db.drafts.orderBy('id').reverse().toArray();
+  const drafts = await db.drafts.orderBy('id').reverse().toArray();
+  return drafts.map((draft) => ({
+    ...draft,
+    exported: draft.exported ?? false,
+    exportedAt: draft.exportedAt ?? null,
+  }));
 }
 
 export async function updateDraftNoteType(id: number, noteType: DraftNoteType) {
-  await db.drafts.update(id, { noteType, card: null });
+  await db.drafts.update(id, { noteType, card: null, exported: false, exportedAt: null });
 }
 
 export async function removeDraft(id: number) {
@@ -72,6 +79,6 @@ export async function generateCardForDraft(id: number) {
   }
 
   const card = await generateCardPayload({ draft });
-  await db.drafts.update(id, { card });
-  return { ...draft, card } as DraftEntry;
+  await db.drafts.update(id, { card, exported: false, exportedAt: null });
+  return { ...draft, card, exported: false, exportedAt: null } as DraftEntry;
 }
