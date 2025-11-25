@@ -1,12 +1,6 @@
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { cn } from '@/lib/utils';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useSessionStore } from '@/stores/session';
+import type { LangPair } from '@/lib/llm';
 
 type LanguageSelectProps = {
   disabled?: boolean;
@@ -17,19 +11,28 @@ export function LanguageSelect({ disabled, className }: LanguageSelectProps) {
   const language = useSessionStore((state) => state.language);
   const setLanguage = useSessionStore((state) => state.setLanguage);
 
+  const handleChange = (value: string) => {
+    setLanguage(value as LangPair);
+  };
+
   return (
-    <Select value={language} onValueChange={setLanguage} disabled={disabled}>
-      <SelectTrigger
-        className={cn('min-w-24', className)}
-        data-test-id="language-select"
-        disabled={disabled}
-      >
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent align="end">
-        <SelectItem value="EN">EN</SelectItem>
-        <SelectItem value="PL">PL</SelectItem>
-      </SelectContent>
-    </Select>
+    <ToggleGroup
+      type="single"
+      value={language}
+      onValueChange={handleChange}
+      disabled={disabled}
+      variant="outline"
+      size="lg"
+      spacing={0}
+      className={className}
+      data-test-id="language-select"
+    >
+      <ToggleGroupItem value="EN" disabled={disabled} data-test-id="language-option-EN">
+        EN
+      </ToggleGroupItem>
+      <ToggleGroupItem value="PL" disabled={disabled} data-test-id="language-option-PL">
+        PL
+      </ToggleGroupItem>
+    </ToggleGroup>
   );
 }

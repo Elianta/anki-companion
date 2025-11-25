@@ -26,7 +26,8 @@ const renderScreen = () =>
       <HomeScreen />
     </>,
   );
-const getLangSelect = () => screen.getByTestId('language-select');
+const getLangGroup = () => screen.getByTestId('language-select');
+const getLangOption = (lang: 'EN' | 'PL') => screen.getByTestId(`language-option-${lang}`);
 const getTermInput = () => screen.getByTestId('term-input');
 const getSearchButton = () => screen.getByTestId('search-button');
 
@@ -40,12 +41,13 @@ describe('HomeScreen', () => {
   it('renders the input and language selector', () => {
     renderScreen();
     expect(getTermInput()).toBeInTheDocument();
-    expect(getLangSelect()).toBeInTheDocument();
+    expect(getLangGroup()).toBeInTheDocument();
   });
 
   it('defaults language to EN', () => {
     renderScreen();
-    expect(getLangSelect()).toHaveTextContent('EN');
+    expect(getLangOption('EN')).toHaveAttribute('data-state', 'on');
+    expect(getLangOption('PL')).toHaveAttribute('data-state', 'off');
   });
 
   it('updates the input value when typing', async () => {
