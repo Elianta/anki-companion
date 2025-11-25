@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
+import { SearchIcon } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,23 +33,36 @@ export function HomeScreen() {
     }
   };
 
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    await handleSearch();
+  };
+
   return (
-    <section className="mx-auto flex w-full max-w-xl flex-col gap-4">
-      <Input
-        data-test-id="term-input"
-        value={term}
-        onChange={(event) => setTerm(event.target.value)}
-        placeholder="Enter a word or chunk (context in [brackets])"
-      />
-      <Button
-        type="button"
-        variant="default"
-        onClick={handleSearch}
-        disabled={isSubmitting}
-        data-test-id="search-button"
+    <section className="mx-auto grid min-h-[60vh] w-full max-w-3xl items-start md:items-center">
+      <form
+        onSubmit={handleSubmit}
+        className="relative flex items-stretch overflow-hidden rounded-full border border-slate-200 bg-white shadow-sm transition focus-within:shadow-md"
       >
-        Search
-      </Button>
+        <Input
+          data-test-id="term-input"
+          name="term"
+          value={term}
+          onChange={(event) => setTerm(event.target.value)}
+          placeholder="Enter a word or chunk (context in [brackets])"
+          className="h-16 flex-1 rounded-none border-0 px-6 pr-20 text-base shadow-none focus-visible:border-transparent focus-visible:ring-0 md:h-20 md:text-lg md:pr-26"
+        />
+        <Button
+          type="submit"
+          size="lg"
+          variant="secondary"
+          className="absolute right-0 top-1/2 h-16 w-16 -translate-y-1/2 rounded-full border-0 bg-slate-900 px-0 text-base font-semibold text-white shadow-md transition focus-visible:ring-0 hover:bg-slate-800 focus-visible:bg-slate-800 md:h-20 md:w-20"
+          disabled={isSubmitting}
+          data-test-id="search-button"
+        >
+          <SearchIcon className="size-6 md:size-7" />
+        </Button>
+      </form>
     </section>
   );
 }
