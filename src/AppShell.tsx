@@ -52,7 +52,7 @@ export function AppShell() {
           <div className="flex flex-col gap-3">
             <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Anki Companion</p>
           </div>
-          <nav className="hidden items-center gap-2 md:flex">
+          <nav className="hidden items-center gap-4 md:flex">
             <button
               type="button"
               disabled={!isHomeRoute}
@@ -63,22 +63,18 @@ export function AppShell() {
             >
               {language}
             </button>
-            {NAV_LINKS.map((link) => {
-              const Icon = link.icon;
-              return (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  activeProps={{
-                    'data-active': true,
-                  }}
-                  className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-900/20 hover:text-slate-900 data-[active=true]:border-slate-900 data-[active=true]:bg-slate-900 data-[active=true]:text-white"
-                >
-                  <Icon className="h-4 w-4" />
-                  {link.label}
-                </Link>
-              );
-            })}
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                activeProps={{
+                  'data-active': true,
+                }}
+                className="px-2 py-3 text-sm font-medium text-slate-500 transition hover:text-slate-900 data-[active=true]:text-slate-900"
+              >
+                {link.label}
+              </Link>
+            ))}
           </nav>
         </div>
       </header>
