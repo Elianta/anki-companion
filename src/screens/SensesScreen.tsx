@@ -45,7 +45,7 @@ export function SensesScreen() {
 
   return (
     <section className="space-y-6">
-      <Card className="bg-white shadow-sm">
+      <Card className="bg-white">
         {!senses.length ? (
           <>
             <CardHeader>

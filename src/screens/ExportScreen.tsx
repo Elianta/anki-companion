@@ -59,7 +59,7 @@ export function ExportScreen() {
 
   return (
     <section className="space-y-6">
-      <Card className="bg-white shadow-sm">
+      <Card className="bg-white">
         <CardHeader>
           <CardTitle>Export drafts</CardTitle>
           <CardDescription>Download CSV files from previous exports.</CardDescription>

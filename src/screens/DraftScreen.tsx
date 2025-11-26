@@ -125,9 +125,7 @@ export function DraftScreen() {
     () => drafts.filter((draft) => draft.card && !draft.exported),
     [drafts],
   );
-  const selectedCount = readyDrafts.filter(
-    (draft) => draft.id && selectedIds.has(draft.id),
-  ).length;
+  const selectedCount = readyDrafts.filter((draft) => draft.id && selectedIds.has(draft.id)).length;
   const isAllSelected = readyDrafts.length > 0 && selectedCount === readyDrafts.length;
 
   const toggleDraftSelection = (draftId: number) => {
@@ -181,7 +179,7 @@ export function DraftScreen() {
 
   return (
     <section className="space-y-6">
-      <Card className="bg-white shadow-sm">
+      <Card className="bg-white">
         <CardHeader>
           <CardTitle>Draft cards</CardTitle>
           <CardDescription>Manage saved senses before exporting.</CardDescription>

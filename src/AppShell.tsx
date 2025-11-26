@@ -47,7 +47,7 @@ export function AppShell() {
   return (
     <div className="grid grid-rows-[max-content_minmax(400px,1fr)] min-h-svh bg-background text-foreground">
       <header className="border-b border-slate-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-6 md:flex-row md:items-center md:justify-between">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-6 md:flex-row md:items-center md:justify-between sm:px-6 lg:px-8">
           <div className="flex flex-col gap-3">
             <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Anki Companion</p>
           </div>
@@ -82,12 +82,12 @@ export function AppShell() {
         </div>
       </header>
       <main className="grid">
-        <div className="mx-auto grid w-full max-w-6xl px-4 pb-28 pt-10 sm:px-6 lg:px-8 md:pb-10">
+        <div className="mx-auto grid w-full max-w-6xl px-4 pb-28 pt-8 sm:px-6 lg:px-8 md:pb-10 md:pt-10">
           <Outlet />
         </div>
       </main>
       <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur md:hidden">
-        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
+        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3 sm:px-6">
           <button
             type="button"
             disabled={!isHomeRoute}
