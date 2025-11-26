@@ -97,7 +97,13 @@ describe('DraftScreen', () => {
     expect(screen.getByText('drugi')).toBeInTheDocument();
     expect(screen.queryByText('second note')).not.toBeInTheDocument();
     expect(screen.queryByText('verb')).not.toBeInTheDocument();
-    expect(screen.getAllByText('Card ready')).toHaveLength(2);
+    const readyIds = new Set(
+      screen
+        .getAllByTestId(/card-ready-/)
+        .map((button) => button.getAttribute('data-test-id'))
+        .filter(Boolean),
+    );
+    expect(readyIds.size).toBe(2);
   });
 
   it('allows changing note type and removing a draft', async () => {
@@ -148,15 +154,10 @@ describe('DraftScreen', () => {
 
     await waitFor(() => expect(navigateMock).toHaveBeenCalledWith({ to: '/export' }));
 
-    await waitFor(() => {
-      expect(screen.getByTestId(`exported-badge-${enId}`)).toBeInTheDocument();
-      expect(screen.getByTestId(`exported-badge-${plId}`)).toBeInTheDocument();
-    });
-
-    const enCheckbox = screen.getByTestId(`select-draft-${enId}`) as HTMLInputElement;
-    const plCheckbox = screen.getByTestId(`select-draft-${plId}`) as HTMLInputElement;
-    expect(enCheckbox.disabled).toBe(true);
-    expect(plCheckbox.disabled).toBe(true);
+    const enCheckbox = screen.getByTestId(`select-draft-${enId}`);
+    const plCheckbox = screen.getByTestId(`select-draft-${plId}`);
+    expect(enCheckbox).toBeDisabled();
+    expect(plCheckbox).toBeDisabled();
   });
 
   it('shows toast on export error', async () => {

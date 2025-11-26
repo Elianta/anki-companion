@@ -3,10 +3,8 @@ import { RefreshCwIcon, Trash2Icon } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
@@ -15,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import type { DraftEntry, DraftNoteType } from '@/lib/db';
 import {
   fetchDrafts,
@@ -24,6 +23,7 @@ import {
   updateDraftNoteType,
 } from '@/services/draft-storage';
 import { createExportGroupFromDrafts } from '@/services/export-storage';
+import { CardEditorButton } from '@/components/drafts/CardEditorButton';
 
 export function DraftScreen() {
   const navigate = useNavigate({ from: '/draft' });
@@ -194,20 +194,17 @@ export function DraftScreen() {
             </p>
           )}
 
-          {hasDrafts ? (
+          {hasDrafts && (
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4">
                 <Checkbox
                   checked={isAllSelected}
                   onCheckedChange={toggleAll}
-                  className="h-5 w-5"
+                  className="h-9 w-9"
                   data-test-id="select-all-drafts"
                   disabled={!readyDrafts.length}
                 />
-                <p className="text-sm text-slate-800">
-                  Select all ready cards ({readyDrafts.length} available)
-                </p>
-                <Badge variant="outline">Selected: {selectedCount}</Badge>
+                <p className="text-sm text-slate-800">Select all ready cards</p>
               </div>
 
               <div className="grid gap-4">
@@ -222,49 +219,70 @@ export function DraftScreen() {
                       data-test-id={`draft-item-${draft.id}`}
                       className="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-xs"
                     >
-                      <div className="flex flex-wrap items-start gap-3">
-                        <div className="mt-1">
-                          <Checkbox
-                            checked={isSelected}
-                            disabled={!isReady || isExported}
-                            onCheckedChange={() => draft.id && toggleDraftSelection(draft.id)}
-                            className="h-5 w-5"
-                            data-test-id={`select-draft-${draft.id}`}
-                          />
-                        </div>
+                      <div className="flex flex-wrap items-start gap-2">
+                        <Checkbox
+                          checked={isSelected}
+                          disabled={!isReady || isExported}
+                          onCheckedChange={() => draft.id && toggleDraftSelection(draft.id)}
+                          className="h-9 w-9"
+                          data-test-id={`select-draft-${draft.id}`}
+                        />
                         <div className="flex items-center gap-2">
+                          <Select
+                            value={draft.noteType}
+                            onValueChange={(value) =>
+                              draft.id && handleNoteTypeChange(draft.id, value as DraftNoteType)
+                            }
+                            disabled={isExported || noteTypes.length === 1}
+                          >
+                            <SelectTrigger data-test-id={`note-type-${draft.id}`} size="default">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {noteTypes.map((noteType) => (
+                                <SelectItem key={noteType} value={noteType}>
+                                  {noteType}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           {draft.card ? (
-                            <Badge variant="default">Card ready</Badge>
-                          ) : generatingIds.has(draft.id ?? -1) ? (
-                            <Badge variant="outline">Generating…</Badge>
+                            <CardEditorButton
+                              draft={draft}
+                              onSave={refreshDraft}
+                              disabled={isExported}
+                            />
                           ) : (
-                            <Badge
-                              variant="secondary"
-                              className="flex items-center gap-2 pr-1"
-                              data-test-id={`card-pending-${draft.id}`}
-                            >
-                              Card pending
+                            <div className="relative">
                               <Button
                                 type="button"
+                                variant="outline"
                                 size="icon"
-                                variant="ghost"
-                                className="h-4 w-4 text-slate-700"
-                                aria-label="Regenerate card"
+                                className="text-slate-700"
+                                aria-label="Generate card"
+                                data-test-id={`card-pending-${draft.id}`}
                                 onClick={() => draft.id && triggerCardGeneration(draft.id)}
+                                disabled={generatingIds.has(draft.id ?? -1)}
                               >
-                                <RefreshCwIcon className="h-4 w-4" />
+                                <RefreshCwIcon
+                                  className={cn(
+                                    'h-4 w-4',
+                                    generatingIds.has(draft.id ?? -1) && 'animate-spin',
+                                  )}
+                                />
                               </Button>
-                            </Badge>
+                              <span className="pointer-events-none absolute inset-0 rounded-md bg-slate-200/70 animate-pulse" />
+                            </div>
                           )}
-                          {isExported ? (
-                            <Badge variant="outline" data-test-id={`exported-badge-${draft.id}`}>
-                              Exported
-                            </Badge>
-                          ) : null}
                         </div>
+                        {/* {isExported ? (
+                          <Badge variant="outline" data-test-id={`exported-badge-${draft.id}`}>
+                            Exported
+                          </Badge>
+                        ) : null} */}
                         <Button
                           type="button"
-                          variant="ghost"
+                          variant="outline"
                           size="icon"
                           className="ml-auto text-slate-600"
                           onClick={() => draft.id && handleRemove(draft.id)}
@@ -275,7 +293,7 @@ export function DraftScreen() {
                         </Button>
                       </div>
 
-                      <div className="mt-3 pl-8 grid gap-4 sm:grid-cols-2">
+                      <div className="mt-4 pl-14 grid gap-4 sm:grid-cols-2">
                         <div className="space-y-1">
                           <p className="text-xs uppercase tracking-wide text-muted-foreground">
                             Term
@@ -289,38 +307,12 @@ export function DraftScreen() {
                           <p className="text-sm text-slate-900">{draft.sense.translationRU}</p>
                         </div>
                       </div>
-
-                      <div className="mt-4 pl-8 flex flex-wrap items-center gap-3">
-                        <Label className="text-sm text-slate-700">Note Type</Label>
-                        {noteTypes.length > 1 ? (
-                          <Select
-                            value={draft.noteType}
-                            onValueChange={(value) =>
-                              draft.id && handleNoteTypeChange(draft.id, value as DraftNoteType)
-                            }
-                            disabled={isExported}
-                          >
-                            <SelectTrigger data-test-id={`note-type-${draft.id}`} size="sm">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {noteTypes.map((noteType) => (
-                                <SelectItem key={noteType} value={noteType}>
-                                  {noteType}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Badge variant="secondary">{draft.noteType}</Badge>
-                        )}
-                      </div>
                     </div>
                   );
                 })}
               </div>
             </div>
-          ) : null}
+          )}
         </CardContent>
         <CardContent className="border-t border-slate-200 pt-6">
           <div className="flex flex-wrap items-center gap-3">
@@ -332,9 +324,6 @@ export function DraftScreen() {
             >
               {isExporting ? 'Exporting…' : 'Export selected'}
             </Button>
-            <p className="text-sm text-muted-foreground">
-              Exported cards appear on the Export page with CSV download links.
-            </p>
           </div>
         </CardContent>
       </Card>

@@ -82,3 +82,14 @@ export async function generateCardForDraft(id: number) {
   await db.drafts.update(id, { card, exported: false, exportedAt: null });
   return { ...draft, card, exported: false, exportedAt: null } as DraftEntry;
 }
+
+export async function updateDraftCardFields(id: number, fields: Record<string, unknown>) {
+  const draft = await db.drafts.get(id);
+  if (!draft || !draft.card) {
+    throw new Error('Card not found for this draft');
+  }
+
+  const updatedCard = { ...draft.card, fields, generatedAt: new Date().toISOString() };
+  await db.drafts.update(id, { card: updatedCard, exported: false, exportedAt: null });
+  return { ...draft, card: updatedCard, exported: false, exportedAt: null } as DraftEntry;
+}
