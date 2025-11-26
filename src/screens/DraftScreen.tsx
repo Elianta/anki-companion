@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { RefreshCwIcon } from 'lucide-react';
+import { RefreshCwIcon, Trash2Icon } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 
@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -195,12 +196,11 @@ export function DraftScreen() {
 
           {hasDrafts ? (
             <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2">
-                <input
-                  type="checkbox"
+              <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4">
+                <Checkbox
                   checked={isAllSelected}
-                  onChange={toggleAll}
-                  className="h-4 w-4 accent-primary"
+                  onCheckedChange={toggleAll}
+                  className="h-5 w-5"
                   data-test-id="select-all-drafts"
                   disabled={!readyDrafts.length}
                 />
@@ -224,32 +224,13 @@ export function DraftScreen() {
                     >
                       <div className="flex flex-wrap items-start gap-3">
                         <div className="mt-1">
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={isSelected}
                             disabled={!isReady || isExported}
-                            onChange={() => draft.id && toggleDraftSelection(draft.id)}
-                            className="h-4 w-4 accent-primary"
+                            onCheckedChange={() => draft.id && toggleDraftSelection(draft.id)}
+                            className="h-5 w-5"
                             data-test-id={`select-draft-${draft.id}`}
                           />
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <div className="flex items-center gap-3">
-                            <Badge variant="secondary" className="uppercase">
-                              {draft.language}
-                            </Badge>
-                            {draft.sense.partOfSpeech ? (
-                              <Badge variant="outline" className="uppercase">
-                                {draft.sense.partOfSpeech}
-                              </Badge>
-                            ) : null}
-                          </div>
-                          <div>
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                              Term
-                            </p>
-                            <p className="text-lg font-semibold text-slate-900">{draft.term}</p>
-                          </div>
                         </div>
                         <div className="flex items-center gap-2">
                           {draft.card ? (
@@ -284,31 +265,32 @@ export function DraftScreen() {
                         <Button
                           type="button"
                           variant="ghost"
-                          size="sm"
-                          className="ml-auto"
+                          size="icon"
+                          className="ml-auto text-slate-600"
                           onClick={() => draft.id && handleRemove(draft.id)}
                           data-test-id={`remove-draft-${draft.id}`}
+                          aria-label="Delete draft"
                         >
-                          Delete
+                          <Trash2Icon className="h-4 w-4" />
                         </Button>
                       </div>
 
-                      <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                      <div className="mt-3 pl-8 grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-1">
+                          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                            Term
+                          </p>
+                          <p className="text-sm font-semibold text-slate-900">{draft.term}</p>
+                        </div>
                         <div className="space-y-1">
                           <p className="text-xs uppercase tracking-wide text-muted-foreground">
                             Translation
                           </p>
                           <p className="text-sm text-slate-900">{draft.sense.translationRU}</p>
                         </div>
-                        <div className="space-y-1">
-                          <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                            Sense note
-                          </p>
-                          <p className="text-sm text-slate-900">{draft.sense.notes ?? '—'}</p>
-                        </div>
                       </div>
 
-                      <div className="mt-4 flex flex-wrap items-center gap-3">
+                      <div className="mt-4 pl-8 flex flex-wrap items-center gap-3">
                         <Label className="text-sm text-slate-700">Note Type</Label>
                         {noteTypes.length > 1 ? (
                           <Select

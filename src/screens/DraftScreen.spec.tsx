@@ -91,13 +91,12 @@ describe('DraftScreen', () => {
 
     expect(await screen.findByText('apple')).toBeInTheDocument();
     expect(screen.getByText('first')).toBeInTheDocument();
-    expect(screen.getByText('note-a')).toBeInTheDocument();
-    expect(screen.getByText('noun')).toBeInTheDocument();
-
+    expect(screen.queryByText('note-a')).not.toBeInTheDocument();
+    expect(screen.queryByText('noun')).not.toBeInTheDocument();
     expect(screen.getByText('pisać')).toBeInTheDocument();
     expect(screen.getByText('drugi')).toBeInTheDocument();
-    expect(screen.getByText('second note')).toBeInTheDocument();
-    expect(screen.getByText('verb')).toBeInTheDocument();
+    expect(screen.queryByText('second note')).not.toBeInTheDocument();
+    expect(screen.queryByText('verb')).not.toBeInTheDocument();
     expect(screen.getAllByText('Card ready')).toHaveLength(2);
   });
 
