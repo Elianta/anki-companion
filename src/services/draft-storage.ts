@@ -93,3 +93,7 @@ export async function updateDraftCardFields(id: number, fields: Record<string, u
   await db.drafts.update(id, { card: updatedCard, exported: false, exportedAt: null });
   return { ...draft, card: updatedCard, exported: false, exportedAt: null } as DraftEntry;
 }
+
+export async function returnDraftToQueue(id: number) {
+  await db.drafts.update(id, { exported: false, exportedAt: null });
+}

@@ -131,7 +131,7 @@ describe('DraftScreen', () => {
     );
   });
 
-  it('exports selected drafts and disables exported items', async () => {
+  it('exports selected drafts and removes them from list', async () => {
     const enId = await saveDraftFromSense({
       sense: buildSense({ id: 'en-1', translationRU: 'hello ru', partOfSpeech: 'noun' }),
       term: 'hello',
@@ -154,10 +154,10 @@ describe('DraftScreen', () => {
 
     await waitFor(() => expect(navigateMock).toHaveBeenCalledWith({ to: '/export' }));
 
-    const enCheckbox = screen.getByTestId(`select-draft-${enId}`);
-    const plCheckbox = screen.getByTestId(`select-draft-${plId}`);
-    expect(enCheckbox).toBeDisabled();
-    expect(plCheckbox).toBeDisabled();
+    await waitFor(() => {
+      expect(screen.queryByTestId(`draft-item-${enId}`)).not.toBeInTheDocument();
+      expect(screen.queryByTestId(`draft-item-${plId}`)).not.toBeInTheDocument();
+    });
   });
 
   it('shows toast on export error', async () => {

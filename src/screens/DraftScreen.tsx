@@ -121,10 +121,11 @@ export function DraftScreen() {
     }
   };
 
-  const hasDrafts = drafts.length > 0;
+  const displayedDrafts = drafts.filter((draft) => !draft.exported);
+  const hasDrafts = displayedDrafts.length > 0;
   const readyDrafts = useMemo(
-    () => drafts.filter((draft) => draft.card && !draft.exported),
-    [drafts],
+    () => displayedDrafts.filter((draft) => draft.card),
+    [displayedDrafts],
   );
   const selectedCount = readyDrafts.filter((draft) => draft.id && selectedIds.has(draft.id)).length;
   const isAllSelected = readyDrafts.length > 0 && selectedCount === readyDrafts.length;
@@ -208,7 +209,7 @@ export function DraftScreen() {
               </div>
 
               <div className="grid gap-4">
-                {drafts.map((draft) => {
+                {displayedDrafts.map((draft) => {
                   const noteTypes = getNoteTypesForLanguage(draft.language);
                   const isExported = !!draft.exported;
                   const isReady = !!draft.card;
@@ -235,7 +236,11 @@ export function DraftScreen() {
                             }
                             disabled={isExported || noteTypes.length === 1}
                           >
-                            <SelectTrigger data-test-id={`note-type-${draft.id}`} size="default">
+                            <SelectTrigger
+                              data-test-id={`note-type-${draft.id}`}
+                              size="default"
+                              className="bg-white"
+                            >
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>

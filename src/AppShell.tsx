@@ -1,5 +1,5 @@
 import { Link, Outlet, useRouterState } from '@tanstack/react-router';
-import { BookmarkIcon, HomeIcon, UploadCloudIcon } from 'lucide-react';
+import { BookmarkIcon, ClockIcon, HomeIcon, UploadCloudIcon } from 'lucide-react';
 
 import { useSessionStore } from '@/stores/session';
 import { useEffect, useState } from 'react';
@@ -9,6 +9,7 @@ const NAV_LINKS = [
   { to: '/', label: 'Search', icon: HomeIcon },
   { to: '/draft', label: 'Drafts', icon: BookmarkIcon },
   { to: '/export', label: 'Export', icon: UploadCloudIcon },
+  { to: '/history', label: 'History', icon: ClockIcon },
 ];
 
 export function AppShell() {
@@ -87,41 +88,41 @@ export function AppShell() {
         </div>
       </main>
       <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur md:hidden">
-        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3 sm:px-6">
+        <div className="mx-auto grid grid-cols-5 max-w-3xl items-center justify-between justify-items-center px-4 py-3 sm:px-6">
           <button
             type="button"
             disabled={!isHomeRoute}
             onClick={toggleLanguage}
-            className="flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 bg-slate-900 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className="relative z-30 -top-7 flex order-3 h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-slate-900 text-sm font-semibold text-white shadow-sm transition outline-4 outline-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
             aria-label="Toggle language"
             data-test-id="language-toggle-mobile"
           >
             {language}
           </button>
-          <div className="flex flex-1 items-center justify-end gap-8">
-            {NAV_LINKS.map((link) => {
-              const Icon = link.icon;
-              const showBadge = link.to === '/draft' && readyDraftCount > 0;
-              return (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  activeProps={{
-                    'data-active': true,
-                  }}
-                  className="relative flex flex-col items-center gap-1 rounded-lg px-3 py-1 text-xs font-medium text-slate-500 transition hover:text-slate-900 data-[active=true]:text-slate-900"
-                >
-                  <Icon className="h-5 w-5" />
-                  {link.label}
-                  {showBadge ? (
-                    <span className="absolute right-3 -top-0.5 h-4 min-w-4 rounded-full flex justify-center bg-rose-500 px-1 text-[10px] font-semibold leading-4 text-white">
-                      {readyDraftCount}
-                    </span>
-                  ) : null}
-                </Link>
-              );
-            })}
-          </div>
+          {NAV_LINKS.map((link, idx) => {
+            const Icon = link.icon;
+            const showBadge = link.to === '/draft' && readyDraftCount > 0;
+            const order = idx < 2 ? idx + 1 : idx + 2;
+            return (
+              <Link
+                key={link.to}
+                to={link.to}
+                activeProps={{
+                  'data-active': true,
+                }}
+                style={{ order }}
+                className={`relative flex flex-col items-center gap-1 rounded-lg px-3 py-1 text-xs font-medium text-slate-500 transition hover:text-slate-900 data-[active=true]:text-slate-900`}
+              >
+                <Icon className="h-5 w-5" />
+                {link.label}
+                {showBadge && (
+                  <span className="absolute right-3 -top-0.5 h-4 min-w-4 rounded-full flex justify-center bg-rose-500 px-1 text-[10px] font-semibold leading-4 text-white">
+                    {readyDraftCount}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
         </div>
       </nav>
     </div>

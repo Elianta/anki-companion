@@ -4,6 +4,7 @@ import { HomeScreen } from './screens/HomeScreen';
 import { SensesScreen } from './screens/SensesScreen';
 import { DraftScreen } from './screens/DraftScreen';
 import { ExportScreen } from './screens/ExportScreen';
+import { HistoryScreen } from './screens/HistoryScreen';
 
 const rootRoute = createRootRoute({
   component: AppShell,
@@ -33,7 +34,19 @@ const exportRoute = createRoute({
   component: ExportScreen,
 });
 
-const routeTree = rootRoute.addChildren([homeRoute, sensesRoute, draftRoute, exportRoute]);
+const historyRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/history',
+  component: HistoryScreen,
+});
+
+const routeTree = rootRoute.addChildren([
+  homeRoute,
+  sensesRoute,
+  draftRoute,
+  historyRoute,
+  exportRoute,
+]);
 
 export const router = createRouter({
   routeTree,
