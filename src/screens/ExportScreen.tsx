@@ -4,6 +4,12 @@ import { DownloadIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import type { ExportGroup } from '@/lib/db';
 import { fetchDrafts } from '@/services/draft-storage';
 import { fetchExportGroups } from '@/services/export-storage';
@@ -70,45 +76,58 @@ export function ExportScreen() {
           {!isLoading && !exportGroups.length ? (
             <p className="text-sm text-muted-foreground">No exports yet.</p>
           ) : (
-            exportGroups.map((group) => (
-              <div
-                key={group.id}
-                className="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-xs"
-                data-test-id={`export-group-${group.id}`}
-              >
-                <div className="flex flex-wrap items-center gap-3">
-                  <p className="text-sm font-semibold text-slate-900">
-                    Exported {formatTimestamp(group.createdAt)}
-                  </p>
-                  <Badge variant="secondary">Drafts: {group.draftIds.length}</Badge>
+            exportGroups.map((group) => {
+              const words = group.words.length
+                ? group.words
+                : group.draftIds.map((id) => draftWords[id]).filter(Boolean);
+
+              return (
+                <div
+                  key={group.id}
+                  data-test-id={`export-group-${group.id}`}
+                  className="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-xs"
+                >
+                  <div className="flex flex-wrap items-center gap-3">
+                    <p className="text-sm font-semibold text-slate-900">
+                      Exported {formatTimestamp(group.createdAt)}
+                    </p>
+                  </div>
+
+                  <Accordion type="single" collapsible className="mt-3">
+                    <AccordionItem value={`words-${group.id}`}>
+                      <AccordionTrigger className="w-full justify-between rounded-md py-2 text-sm font-medium">
+                        <span>Words ({group.draftIds.length})</span>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-3 pt-2">
+                        <div className="flex flex-wrap gap-2">
+                          {words.map((word) => (
+                            <Badge key={`${group.id}-${word}`} variant="secondary">
+                              {word}
+                            </Badge>
+                          ))}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {group.files.map((file) => (
+                      <Button
+                        key={`${group.id}-${file.noteType}-${file.fileName}`}
+                        type="button"
+                        variant="outline"
+                        className="flex items-center gap-2"
+                        onClick={() => handleDownload(file)}
+                        data-test-id={`download-${group.id}-${file.noteType}`}
+                      >
+                        <DownloadIcon className="h-4 w-4" />
+                        {file.noteType} CSV
+                      </Button>
+                    ))}
+                  </div>
                 </div>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {(group.words.length
-                    ? group.words
-                    : group.draftIds.map((id) => draftWords[id]).filter(Boolean)
-                  ).map((word) => (
-                    <Badge key={`${group.id}-${word}`} variant="secondary">
-                      {word}
-                    </Badge>
-                  ))}
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {group.files.map((file) => (
-                    <Button
-                      key={`${group.id}-${file.noteType}-${file.fileName}`}
-                      type="button"
-                      variant="outline"
-                      className="flex items-center gap-2"
-                      onClick={() => handleDownload(file)}
-                      data-test-id={`download-${group.id}-${file.noteType}`}
-                    >
-                      <DownloadIcon className="h-4 w-4" />
-                      {file.noteType} CSV
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </CardContent>
       </Card>

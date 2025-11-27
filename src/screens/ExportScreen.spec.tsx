@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ExportScreen } from './ExportScreen';
@@ -82,10 +83,13 @@ describe('ExportScreen', () => {
 
     render(<ExportScreen />);
 
+    const trigger = await screen.findByRole('button', { name: /Words \(2\)/i });
+    await userEvent.click(trigger);
+
     const group = await screen.findByTestId(/export-group-/);
     expect(group).toBeInTheDocument();
-    expect(group).toHaveTextContent('hello');
-    expect(group).toHaveTextContent('cześć');
+    expect(await screen.findByText('hello')).toBeInTheDocument();
+    expect(screen.getByText('cześć')).toBeInTheDocument();
 
     const files = screen.getAllByRole('button', { name: /CSV/ });
     expect(files.length).toBeGreaterThanOrEqual(2);
