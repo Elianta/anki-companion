@@ -1,0 +1,31 @@
+# node
+node_modules/
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# output
+dist/
+build/
+.out/
+.next/
+.vercel/
+.eslintcache
+
+# env
+.env
+.env.*
+!.env.example
+
+# system
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+
+# misc
+*.local
+*.log
