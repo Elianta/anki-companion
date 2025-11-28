@@ -1,64 +1,37 @@
-import type { DraftEntry, DraftNoteType, GeneratedCard } from '@/lib/db';
-import { getCardSchema } from '@/services/card-schemas';
-import { OPENAI_MODEL, requestJsonCompletion } from '@/services/openai';
+import { z } from 'zod';
+import type { DraftEntry, GeneratedCard } from '@/lib/db';
+import { apiPath, extractErrorMessage, parseJsonOrThrow } from './api';
 
-const buildCardSystemPrompt = (
-  noteType: DraftNoteType,
-  guidance: string,
-) => `You are an assistant that prepares structured Anki notes.
-Note type: ${noteType}.
-Goal: Fill every field from the schema provided to you while staying faithful to the selected sense.
-Guidance: ${guidance}
-Rules:
-1. Never invent meanings outside the supplied translation or sense note.
-2. Always output valid JSON only (no markdown or extra commentary).
-3. Use concise, natural sentences and keep languages consistent.`;
+const CARD_GENERATION_ENDPOINT = apiPath('/api/cards/generate');
 
-const buildCardUserPrompt = (draft: DraftEntry) => {
-  return `Source word: ${draft.term}
-Language: ${draft.language === 'PL' ? 'Polish' : 'English'}
-Sense translation (Ru): ${draft.sense.translationRU}
-Sense note: ${draft.sense.notes ?? 'Not provided'}
-Part of speech: ${draft.sense.partOfSpeech ?? 'Unknown'}
-`;
-};
-
-type GenerateCardPayloadParams = {
-  draft: DraftEntry;
-};
+const generatedCardSchema = z.object({
+  noteType: z.enum(['EN: Default', 'PL: Default', 'PL: Verb']),
+  fields: z.record(z.string(), z.unknown()),
+  schemaName: z.string(),
+  generatedAt: z.string(),
+});
 
 export async function generateCardPayload({
   draft,
-}: GenerateCardPayloadParams): Promise<GeneratedCard> {
-  const schemaDefinition = getCardSchema(draft.noteType);
-  if (!schemaDefinition) {
-    throw new Error(`Unsupported note type: ${draft.noteType}`);
-  }
-
-  const systemPrompt = buildCardSystemPrompt(draft.noteType, schemaDefinition.systemPrompt);
-  const userPrompt = buildCardUserPrompt(draft);
-
-  const content = await requestJsonCompletion({
-    model: OPENAI_MODEL,
-    temperature: 0.2,
-    response_format: {
-      type: 'json_schema',
-      json_schema: schemaDefinition.jsonSchema,
+}: {
+  draft: DraftEntry;
+}): Promise<GeneratedCard> {
+  const response = await fetch(CARD_GENERATION_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
     },
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt },
-    ],
+    body: JSON.stringify({ draft }),
   });
 
-  const parsedFields = JSON.parse(content);
-  const fields = schemaDefinition.validator.parse(parsedFields);
-  console.log('Generated fields:', fields);
+  if (!response.ok) {
+    const message = await extractErrorMessage(response);
+    throw new Error(`Card generation request failed: ${response.status} ${message}`);
+  }
 
-  return {
-    noteType: draft.noteType,
-    fields,
-    schemaName: schemaDefinition.name,
-    generatedAt: new Date().toISOString(),
-  };
+  const payload = await parseJsonOrThrow<unknown>(
+    response,
+    'Card generation API returned invalid JSON',
+  );
+  return generatedCardSchema.parse(payload);
 }

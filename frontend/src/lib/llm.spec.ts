@@ -1,9 +1,9 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { disambiguate } from './llm';
-import type { SimpleTranslationEntry } from '@/services/openai';
-import { fetchEnglishTranslations, fetchPolishTranslations } from '@/services/openai';
+import type { SimpleTranslationEntry } from '@/services/translations';
+import { fetchEnglishTranslations, fetchPolishTranslations } from '@/services/translations';
 
-vi.mock(import('@/services/openai'), async (importOriginal) => {
+vi.mock(import('@/services/translations'), async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,

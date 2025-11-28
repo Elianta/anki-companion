@@ -16,16 +16,7 @@ Server defaults to `PORT=3001`. Configure CORS origins via `ALLOWED_ORIGINS` (co
 
 ## Endpoints
 - `GET /health` — simple status.
-- `POST /api/chat` — forwards chat messages to OpenAI.
-  - Body:
-    ```json
-    {
-      "model": "gpt-4o-mini",
-      "messages": [
-        { "role": "system", "content": "You format CSV rows." },
-        { "role": "user", "content": "Build entries for..." }
-      ],
-      "temperature": 0.2
-    }
-    ```
-  - Response includes the chosen message plus model/usage metadata.
+- `POST /api/translations` — returns a translation entry for a term.
+  - Body: `{ "rawInput": "zamek [do drzwi]", "sourceLanguage": "pl" }`
+- `POST /api/cards/generate` — builds an Anki card payload for a draft.
+  - Body: `{ "draft": { "term": "...", "language": "PL", "noteType": "PL: Default", "sense": { ... } } }`

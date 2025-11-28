@@ -1,5 +1,5 @@
-import { fetchEnglishTranslations, fetchPolishTranslations } from '@/services/openai';
-import type { SimpleTranslationEntry } from '@/services/openai';
+import { fetchEnglishTranslations, fetchPolishTranslations } from '@/services/translations';
+import type { SimpleTranslationEntry } from '@/services/translations';
 
 export type LangPair = 'EN' | 'PL';
 

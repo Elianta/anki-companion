@@ -1,8 +1,14 @@
-import cors from 'cors';
-import express from 'express';
-import type OpenAI from 'openai';
+import cors from "cors";
+import express from "express";
+import type OpenAI from "openai";
+import {
+  requestTranslationFromOpenAI,
+  translationRequestSchema,
+} from "./translations.js";
+import { cardRequestSchema, generateCardFromOpenAI } from "./cards.js";
+import z from "zod";
 
-type OpenAIClient = Pick<OpenAI, 'chat'>;
+export type OpenAIClient = Pick<OpenAI, "chat">;
 
 type CreateAppOptions = {
   openaiClient?: OpenAIClient;
@@ -13,42 +19,70 @@ export function createApp(options: CreateAppOptions = {}) {
   const { openaiClient, allowedOrigins } = options;
   const app = express();
 
-  const corsOrigin = allowedOrigins && allowedOrigins.length > 0 ? allowedOrigins : true;
+  const corsOrigin =
+    allowedOrigins && allowedOrigins.length > 0 ? allowedOrigins : true;
   app.use(cors({ origin: corsOrigin }));
-  app.use(express.json({ limit: '2mb' }));
+  app.use(express.json({ limit: "2mb" }));
 
-  app.get('/health', (_req, res) => {
-    res.json({ status: 'ok' });
+  app.get("/health", (_req, res) => {
+    res.json({ status: "ok" });
   });
 
-  app.post('/api/chat', async (req, res) => {
+  app.post("/api/translations", async (req, res) => {
     if (!openaiClient) {
-      return res.status(500).json({ error: 'Server missing OPENAI_API_KEY' });
+      return res.status(500).json({ error: "Server missing OPENAI_API_KEY" });
     }
 
-    const { messages, model = 'gpt-4o-mini', temperature = 0.2 } = req.body ?? {};
-
-    if (!Array.isArray(messages) || messages.length === 0) {
-      return res.status(400).json({ error: 'messages must be a non-empty array' });
+    const parsedBody = translationRequestSchema.safeParse(req.body ?? {});
+    if (!parsedBody.success) {
+      return res.status(400).json({
+        error: "Invalid translation request",
+        details: z.treeifyError(parsedBody.error),
+      });
     }
+
+    const { rawInput, sourceLanguage } = parsedBody.data;
 
     try {
-      const completion = await openaiClient.chat.completions.create({
-        model,
-        temperature,
-        messages,
-      });
-
-      const choice = completion.choices?.[0]?.message;
-      return res.json({
-        model: completion.model,
-        usage: completion.usage,
-        message: choice,
-      });
+      const entry = await requestTranslationFromOpenAI(
+        openaiClient,
+        rawInput,
+        sourceLanguage
+      );
+      return res.json(entry);
     } catch (error) {
-      console.error('OpenAI request failed', error);
+      console.error("OpenAI translation request failed", error);
       const status = (error as { status?: number })?.status ?? 500;
-      return res.status(status).json({ error: (error as Error).message ?? 'OpenAI request failed' });
+      return res.status(status).json({
+        error: (error as Error).message ?? "OpenAI translation failed",
+      });
+    }
+  });
+
+  app.post("/api/cards/generate", async (req, res) => {
+    if (!openaiClient) {
+      return res.status(500).json({ error: "Server missing OPENAI_API_KEY" });
+    }
+
+    const parsedBody = cardRequestSchema.safeParse(req.body ?? {});
+    if (!parsedBody.success) {
+      return res.status(400).json({
+        error: "Invalid card generation request",
+        details: parsedBody.error.flatten(),
+      });
+    }
+
+    const { draft } = parsedBody.data;
+
+    try {
+      const card = await generateCardFromOpenAI(openaiClient, draft);
+      return res.json(card);
+    } catch (error) {
+      console.error("OpenAI card generation failed", error);
+      const status = (error as { status?: number })?.status ?? 500;
+      return res.status(status).json({
+        error: (error as Error).message ?? "OpenAI card generation failed",
+      });
     }
   });
 

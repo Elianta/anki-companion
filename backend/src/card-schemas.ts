@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { z } from 'zod';
 
-import type { DraftNoteType } from '@/lib/db';
+export type DraftNoteType = 'EN: Default' | 'PL: Default' | 'PL: Verb';
 
 type FieldDefinition = {
   type: 'string';

@@ -1,80 +1,95 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest';
-
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DraftEntry } from '@/lib/db';
 import { generateCardPayload } from './card-generator';
-import { CARD_SCHEMAS } from '@/services/card-schemas';
-import { OPENAI_MODEL, requestJsonCompletion } from '@/services/openai';
 
-vi.mock('@/services/openai', () => ({
-  OPENAI_MODEL: 'mock-model',
-  requestJsonCompletion: vi.fn(),
-}));
-
-const buildDraft = (overrides: Partial<DraftEntry> = {}): DraftEntry => ({
-  id: 1,
-  term: 'zamek',
-  language: 'PL',
-  noteType: 'PL: Default',
-  sense: {
-    id: 'zamek-1',
-    translationRU: 'замок',
-    notes: 'дверной механизм',
-    partOfSpeech: 'noun',
-    usageLevel: 'high',
-    examples: ['zamek jest zamknięty — замок закрыт'],
-  },
-  card: null,
-  ...overrides,
-});
-
-describe('generateCardPayload', () => {
-  const completionMock = vi.mocked(requestJsonCompletion);
+describe('generateCardPayload (backend API)', () => {
+  const fetchMock = vi.fn();
+  const draft: DraftEntry = {
+    id: 1,
+    term: 'zamek',
+    language: 'PL',
+    noteType: 'PL: Default',
+    sense: {
+      id: 'zamek-1',
+      translationRU: 'замок',
+      notes: 'door lock',
+      partOfSpeech: 'noun',
+      usageLevel: 'high',
+      examples: ['zamek jest zamknięty — замок закрыт'],
+    },
+    card: null,
+    exported: false,
+    exportedAt: null,
+  };
 
   beforeEach(() => {
-    completionMock.mockReset();
+    vi.stubGlobal('fetch', fetchMock);
   });
 
-  it('generates card payload for PL: Default schema', async () => {
-    const draft = buildDraft();
-    const schema = CARD_SCHEMAS['PL: Default'];
-    const response = Object.fromEntries(schema.jsonSchema.schema.required.map((key) => [key, `${key}-value`]));
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.clearAllMocks();
+  });
 
-    completionMock.mockResolvedValueOnce(JSON.stringify(response));
+  it('sends draft data to backend and returns generated card', async () => {
+    const generatedCard = {
+      noteType: draft.noteType,
+      fields: { Word: 'zamek', Translation: 'замок' },
+      schemaName: 'pl_default_note',
+      generatedAt: '2024-01-01T00:00:00.000Z',
+    };
+
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => generatedCard,
+    } as any);
 
     const result = await generateCardPayload({ draft });
 
-    expect(requestJsonCompletion).toHaveBeenCalledWith({
-      model: OPENAI_MODEL,
-      temperature: 0.2,
-      response_format: {
-        type: 'json_schema',
-        json_schema: schema.jsonSchema,
-      },
-      messages: expect.any(Array),
-    });
-
-    expect(result.noteType).toBe('PL: Default');
-    expect(result.fields).toEqual(response);
-    expect(result.schemaName).toBe(schema.name);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe('/api/cards/generate');
+    expect(options.method).toBe('POST');
+    expect(JSON.parse(options.body)).toEqual({ draft });
+    expect(result).toEqual(generatedCard);
   });
 
-  it('validates response via zod', async () => {
-    const draft = buildDraft();
-    completionMock.mockResolvedValueOnce(JSON.stringify({ Word: 'zamek' }));
+  it('throws when backend responds with an error', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: 'Server missing OPENAI_API_KEY' }),
+    } as any);
+
+    await expect(generateCardPayload({ draft })).rejects.toThrow(
+      'Card generation request failed: 500 Server missing OPENAI_API_KEY',
+    );
+  });
+
+  it('throws when backend returns invalid JSON', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => {
+        throw new Error('bad json');
+      },
+    } as any);
+
+    await expect(generateCardPayload({ draft })).rejects.toThrow(
+      'Card generation API returned invalid JSON',
+    );
+  });
+
+  it('validates generated card shape', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        noteType: draft.noteType,
+        fields: 'not-an-object',
+        schemaName: 'pl_default_note',
+        generatedAt: '2024-01-01T00:00:00.000Z',
+      }),
+    } as any);
 
     await expect(generateCardPayload({ draft })).rejects.toThrow();
-  });
-
-  it('selects schema based on note type', async () => {
-    const draft = buildDraft({ noteType: 'EN: Default', language: 'EN', term: 'lock' });
-    const schema = CARD_SCHEMAS['EN: Default'];
-    const response = Object.fromEntries(schema.jsonSchema.schema.required.map((key) => [key, `${key}-value`]));
-    completionMock.mockResolvedValueOnce(JSON.stringify(response));
-
-    const result = await generateCardPayload({ draft });
-
-    expect(result.noteType).toBe('EN: Default');
-    expect(result.fields).toEqual(response);
-    expect(result.schemaName).toBe(schema.name);
   });
 });
