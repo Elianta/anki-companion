@@ -1,6 +1,6 @@
 import cors from "cors";
 import express from "express";
-import type OpenAI from "openai";
+import OpenAI from "openai";
 import {
   requestTranslationFromOpenAI,
   translationRequestSchema,
@@ -8,7 +8,7 @@ import {
 import { cardRequestSchema, generateCardFromOpenAI } from "./cards.js";
 import z from "zod";
 
-export type OpenAIClient = Pick<OpenAI, "chat">;
+export type OpenAIClient = Pick<InstanceType<typeof OpenAI>, "chat">;
 
 type CreateAppOptions = {
   openaiClient?: OpenAIClient;
