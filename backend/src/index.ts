@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { buildAppFromEnv } from './app-factory.js';
+import { buildAppFromEnv } from './app.js';
 
 const port = Number(process.env.PORT) || 3001;
 

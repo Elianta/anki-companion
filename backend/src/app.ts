@@ -10,6 +10,13 @@ import z from "zod";
 
 export type OpenAIClient = Pick<InstanceType<typeof OpenAI>, "chat">;
 
+function parseAllowedOrigins(rawOrigins?: string) {
+  return rawOrigins
+    ?.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
 type CreateAppOptions = {
   openaiClient?: OpenAIClient;
   allowedOrigins?: string[];
@@ -87,4 +94,17 @@ export function createApp(options: CreateAppOptions = {}) {
   });
 
   return app;
+}
+
+export function buildAppFromEnv() {
+  const allowedOrigins = parseAllowedOrigins(process.env.ALLOWED_ORIGINS);
+
+  const openaiApiKey = process.env.OPENAI_API_KEY;
+  if (!openaiApiKey) {
+    console.warn("Missing OPENAI_API_KEY; set it before making requests.");
+  }
+
+  const openai = openaiApiKey ? new OpenAI({ apiKey: openaiApiKey }) : undefined;
+
+  return createApp({ openaiClient: openai, allowedOrigins });
 }

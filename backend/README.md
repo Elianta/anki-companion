@@ -14,6 +14,14 @@ Small Express server that proxies OpenAI chat requests for the monorepo.
 
 Server defaults to `PORT=3001`. Configure CORS origins via `ALLOWED_ORIGINS` (comma-separated).
 
+## Netlify deployment (serverless)
+- Base directory: `backend`
+- Build command: `npm install && npm run build`
+- Functions directory: `netlify/functions`
+- Publish directory: `dist` (unused, required by Netlify)
+- Redirects (already in `netlify.toml`): `/api/*` → `/.netlify/functions/api/:splat`, `/health` → `/.netlify/functions/api/health`
+Set `OPENAI_API_KEY` and optional `ALLOWED_ORIGINS` in the Netlify site environment. The API is exposed via the `/.netlify/functions/api` function wrapped with `serverless-http`.
+
 ## Endpoints
 - `GET /health` — simple status.
 - `POST /api/translations` — returns a translation entry for a term.
