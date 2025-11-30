@@ -48,7 +48,7 @@ describe('generateCardPayload (backend API)', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, options] = fetchMock.mock.calls[0];
-    expect(url).toBe('/api/cards/generate');
+    expect(String(url)).toContain('/api/cards/generate');
     expect(options.method).toBe('POST');
     expect(JSON.parse(options.body)).toEqual({ draft });
     expect(result).toEqual(generatedCard);

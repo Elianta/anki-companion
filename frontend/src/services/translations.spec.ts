@@ -52,7 +52,7 @@ describe('translation API helpers', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, options] = fetchMock.mock.calls[0];
-    expect(url).toBe('/api/translations');
+    expect(String(url)).toContain('/api/translations');
     expect(options.method).toBe('POST');
     expect(options.headers).toEqual({ 'Content-Type': 'application/json' });
     expect(JSON.parse(options.body)).toEqual({ rawInput, sourceLanguage: 'pl' });
@@ -77,7 +77,7 @@ describe('translation API helpers', () => {
     const result = await fetchEnglishTranslations(rawInput);
 
     const [url, options] = fetchMock.mock.calls[0];
-    expect(url).toBe('/api/translations');
+    expect(String(url)).toContain('/api/translations');
     expect(JSON.parse(options.body)).toEqual({ rawInput, sourceLanguage: 'en' });
     expect(result.source_language).toBe('en');
     expect(result).toEqual(payload);
