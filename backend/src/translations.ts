@@ -1,4 +1,4 @@
-import type OpenAI from "openai";
+import OpenAI from "openai";
 import { z } from "zod";
 
 export type SourceLanguage = "pl" | "en";
@@ -207,7 +207,7 @@ export const translationEntrySchema = z.object({
 
 export type SimpleTranslationEntry = z.infer<typeof translationEntrySchema>;
 
-type OpenAIClient = Pick<OpenAI, "chat">;
+type OpenAIClient = Pick<InstanceType<typeof OpenAI>, "chat">;
 
 const buildRequestBody = (
   rawInput: string,

@@ -1,6 +1,6 @@
 import cors from "cors";
 import express from "express";
-import type OpenAI from "openai";
+import OpenAI from "openai";
 import {
   requestTranslationFromOpenAI,
   translationRequestSchema,
@@ -8,7 +8,14 @@ import {
 import { cardRequestSchema, generateCardFromOpenAI } from "./cards.js";
 import z from "zod";
 
-export type OpenAIClient = Pick<OpenAI, "chat">;
+export type OpenAIClient = Pick<InstanceType<typeof OpenAI>, "chat">;
+
+function parseAllowedOrigins(rawOrigins?: string) {
+  return rawOrigins
+    ?.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
 
 type CreateAppOptions = {
   openaiClient?: OpenAIClient;
@@ -24,7 +31,7 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use(cors({ origin: corsOrigin }));
   app.use(express.json({ limit: "2mb" }));
 
-  app.get("/health", (_req, res) => {
+  app.get("/api/health", (_req, res) => {
     res.json({ status: "ok" });
   });
 
@@ -87,4 +94,19 @@ export function createApp(options: CreateAppOptions = {}) {
   });
 
   return app;
+}
+
+export function buildAppFromEnv() {
+  const allowedOrigins = parseAllowedOrigins(process.env.ALLOWED_ORIGINS);
+
+  const openaiApiKey = process.env.OPENAI_API_KEY;
+  if (!openaiApiKey) {
+    console.warn("Missing OPENAI_API_KEY; set it before making requests.");
+  }
+
+  const openai = openaiApiKey
+    ? new OpenAI({ apiKey: openaiApiKey })
+    : undefined;
+
+  return createApp({ openaiClient: openai, allowedOrigins });
 }

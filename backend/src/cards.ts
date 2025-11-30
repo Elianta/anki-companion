@@ -1,16 +1,16 @@
-import type OpenAI from 'openai';
-import { z } from 'zod';
-import { CARD_SCHEMAS, getCardSchema, type DraftNoteType } from './card-schemas.js';
-import { OPENAI_MODEL } from './translations.js';
+import OpenAI from "openai";
+import { z } from "zod";
+import { getCardSchema, type DraftNoteType } from "./card-schemas.js";
+import { OPENAI_MODEL } from "./translations.js";
 
-type LangPair = 'EN' | 'PL';
+type LangPair = "EN" | "PL";
 
 type Sense = {
   id: string;
   translationRU: string;
   notes?: string;
   partOfSpeech?: string;
-  usageLevel?: 'low' | 'medium' | 'high';
+  usageLevel?: "low" | "medium" | "high";
   frequencyNotes?: string;
   examples?: string[];
 };
@@ -25,14 +25,14 @@ type DraftEntry = {
 export const cardRequestSchema = z.object({
   draft: z.object({
     term: z.string().min(1),
-    language: z.enum(['EN', 'PL']),
-    noteType: z.enum(['EN: Default', 'PL: Default', 'PL: Verb']),
+    language: z.enum(["EN", "PL"]),
+    noteType: z.enum(["EN: Default", "PL: Default", "PL: Verb"]),
     sense: z.object({
       id: z.string().min(1),
       translationRU: z.string().min(1),
       notes: z.string().optional(),
       partOfSpeech: z.string().optional(),
-      usageLevel: z.enum(['low', 'medium', 'high']).optional(),
+      usageLevel: z.enum(["low", "medium", "high"]).optional(),
       frequencyNotes: z.string().optional(),
       examples: z.array(z.string()).optional(),
     }),
@@ -48,7 +48,7 @@ export type GeneratedCard = {
   generatedAt: string;
 };
 
-type OpenAIClient = Pick<OpenAI, 'chat'>;
+type OpenAIClient = Pick<InstanceType<typeof OpenAI>, "chat">;
 
 const buildCardSystemPrompt = (noteType: DraftNoteType, guidance: string) => {
   return `You are an assistant that prepares structured Anki notes.
@@ -63,48 +63,51 @@ Rules:
 
 const buildCardUserPrompt = (draft: DraftEntry) => {
   return `Source word: ${draft.term}
-Language: ${draft.language === 'PL' ? 'Polish' : 'English'}
+Language: ${draft.language === "PL" ? "Polish" : "English"}
 Sense translation (Ru): ${draft.sense.translationRU}
-Sense note: ${draft.sense.notes ?? 'Not provided'}
-Part of speech: ${draft.sense.partOfSpeech ?? 'Unknown'}
+Sense note: ${draft.sense.notes ?? "Not provided"}
+Part of speech: ${draft.sense.partOfSpeech ?? "Unknown"}
 `;
 };
 
 export async function generateCardFromOpenAI(
   openaiClient: OpenAIClient,
-  draft: DraftEntry,
+  draft: DraftEntry
 ): Promise<GeneratedCard> {
   const schemaDefinition = getCardSchema(draft.noteType);
   if (!schemaDefinition) {
     throw new Error(`Unsupported note type: ${draft.noteType}`);
   }
 
-  const systemPrompt = buildCardSystemPrompt(draft.noteType, schemaDefinition.systemPrompt);
+  const systemPrompt = buildCardSystemPrompt(
+    draft.noteType,
+    schemaDefinition.systemPrompt
+  );
   const userPrompt = buildCardUserPrompt(draft);
 
   const completion = await openaiClient.chat.completions.create({
     model: OPENAI_MODEL,
     temperature: 0.2,
     response_format: {
-      type: 'json_schema',
+      type: "json_schema",
       json_schema: schemaDefinition.jsonSchema,
     },
     messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt },
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
     ],
   });
 
   const content = completion.choices?.[0]?.message?.content?.trim();
   if (!content) {
-    throw new Error('OpenAI returned an empty response');
+    throw new Error("OpenAI returned an empty response");
   }
 
   let parsedFields: unknown;
   try {
     parsedFields = JSON.parse(content);
   } catch {
-    throw new Error('Unable to parse OpenAI response');
+    throw new Error("Unable to parse OpenAI response");
   }
 
   const fields = schemaDefinition.validator.parse(parsedFields);
