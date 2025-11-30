@@ -2,12 +2,14 @@
   "name": "anki-companion-backend",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/index.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev:local": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js",
+    "start": "node dist/src/index.js",
     "test": "vitest run"
+  },
+  "engines": {
+    "node": "24.x"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +26,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
     "@types/node": "^22.19.1",
+    "@vercel/node": "^5.5.13",
     "supertest": "^7.1.4",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import request from "supertest";
-import { createApp, OpenAIClient } from "../src/app.js";
+import { createApp } from "../src/app.js";
+import { OpenAIClient } from "../src/types.js";
 
 const mockCompletionResponse = {
   choices: [{ message: { role: "assistant", content: "Hello!" } }],
@@ -32,7 +33,7 @@ const createMockOpenAI = (
 describe("createApp", () => {
   it("returns health status", async () => {
     const app = createApp();
-    const res = await request(app).get("/health");
+    const res = await request(app).get("/api/health");
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ status: "ok" });

@@ -1,14 +1,13 @@
 import cors from "cors";
 import express from "express";
-import OpenAI from "openai";
+import { OpenAI } from "openai";
 import {
   requestTranslationFromOpenAI,
   translationRequestSchema,
 } from "./translations.js";
 import { cardRequestSchema, generateCardFromOpenAI } from "./cards.js";
 import z from "zod";
-
-export type OpenAIClient = Pick<InstanceType<typeof OpenAI>, "chat">;
+import { OpenAIClient } from "./types.js";
 
 function parseAllowedOrigins(rawOrigins?: string) {
   return rawOrigins

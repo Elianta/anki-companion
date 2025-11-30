@@ -1,7 +1,7 @@
-import OpenAI from "openai";
 import { z } from "zod";
 import { getCardSchema, type DraftNoteType } from "./card-schemas.js";
 import { OPENAI_MODEL } from "./translations.js";
+import { OpenAIClient } from "./types.js";
 
 type LangPair = "EN" | "PL";
 
@@ -47,8 +47,6 @@ export type GeneratedCard = {
   schemaName: string;
   generatedAt: string;
 };
-
-type OpenAIClient = Pick<InstanceType<typeof OpenAI>, "chat">;
 
 const buildCardSystemPrompt = (noteType: DraftNoteType, guidance: string) => {
   return `You are an assistant that prepares structured Anki notes.
