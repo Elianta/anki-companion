@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DraftEntry } from '@/lib/db';
 import { generateCardPayload } from './card-generator';
+import { ApiError } from './api';
 
 describe('generateCardPayload (backend API)', () => {
   const fetchMock = vi.fn();
@@ -64,6 +65,22 @@ describe('generateCardPayload (backend API)', () => {
     await expect(generateCardPayload({ draft })).rejects.toThrow(
       'Card generation request failed: 500 Server missing OPENAI_API_KEY',
     );
+  });
+
+  it('throws ApiError with retryAfterSeconds on 429 responses', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 429,
+      headers: new Headers({ 'retry-after': '20' }),
+      json: async () => ({ error: 'Too many requests' }),
+    } as any);
+
+    const error = (await generateCardPayload({ draft }).catch((err) => err)) as ApiError;
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error.status).toBe(429);
+    expect(error.retryAfterSeconds).toBe(20);
+    expect(error.message).toBe('Too many requests');
   });
 
   it('throws when backend returns invalid JSON', async () => {

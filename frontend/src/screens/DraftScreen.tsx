@@ -22,6 +22,7 @@ import {
   removeDraft,
   updateDraftNoteType,
 } from '@/services/draft-storage';
+import { formatRateLimitMessage, isRateLimitError } from '@/services/api';
 import { createExportGroupFromDrafts } from '@/services/export-storage';
 import { CardEditorButton } from '@/components/drafts/CardEditorButton';
 
@@ -90,7 +91,11 @@ export function DraftScreen() {
       await refreshDraft();
     } catch (err) {
       console.warn('Failed to generate card', err);
-      setError('Failed to generate card.');
+      const message = isRateLimitError(err)
+        ? formatRateLimitMessage(err.retryAfterSeconds)
+        : 'Failed to generate card.';
+      setError(message);
+      toast.error(message);
     } finally {
       setGenerating(draftId, false);
     }
@@ -105,7 +110,11 @@ export function DraftScreen() {
       await triggerCardGeneration(draftId);
     } catch (err) {
       console.warn('Failed to update note type', err);
-      setError('Failed to update note type.');
+      const message = isRateLimitError(err)
+        ? formatRateLimitMessage(err.retryAfterSeconds)
+        : 'Failed to update note type.';
+      setError(message);
+      toast.error(message);
     }
   };
 

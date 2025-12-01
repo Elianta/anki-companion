@@ -4,7 +4,9 @@ import { useNavigate } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { disambiguate } from '@/lib/llm';
+import { formatRateLimitMessage, isRateLimitError } from '@/services/api';
 import { useSessionStore } from '@/stores/session';
+import { toast } from 'sonner';
 
 export function HomeScreen() {
   const [term, setTerm] = useState('');
@@ -28,6 +30,10 @@ export function HomeScreen() {
       await navigate({ to: '/senses' });
     } catch (error) {
       console.warn('Failed to disambiguate term', error);
+      const message = isRateLimitError(error)
+        ? formatRateLimitMessage(error.retryAfterSeconds)
+        : 'Failed to fetch translations. Please try again.';
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }

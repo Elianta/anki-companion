@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { DraftEntry, GeneratedCard } from '@/lib/db';
-import { apiPath, extractErrorMessage, parseJsonOrThrow } from './api';
+import { apiPath, buildApiError, parseJsonOrThrow } from './api';
 
 const CARD_GENERATION_ENDPOINT = apiPath('/api/cards/generate');
 
@@ -25,8 +25,7 @@ export async function generateCardPayload({
   });
 
   if (!response.ok) {
-    const message = await extractErrorMessage(response);
-    throw new Error(`Card generation request failed: ${response.status} ${message}`);
+    await buildApiError(response, 'Card generation request failed');
   }
 
   const payload = await parseJsonOrThrow<unknown>(

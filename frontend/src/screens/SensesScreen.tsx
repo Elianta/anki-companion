@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { saveDraftFromSense } from '@/services/draft-storage';
+import { formatRateLimitMessage, isRateLimitError } from '@/services/api';
 import { useSessionStore } from '@/stores/session';
+import { toast } from 'sonner';
 
 export function SensesScreen() {
   const navigate = useNavigate({ from: '/senses' });
@@ -37,7 +39,11 @@ export function SensesScreen() {
       await navigate({ to: '/draft' });
     } catch (err) {
       console.warn('Failed to save draft', err);
-      setError('Failed to save draft. Please try again.');
+      const message = isRateLimitError(err)
+        ? formatRateLimitMessage(err.retryAfterSeconds)
+        : 'Failed to save draft. Please try again.';
+      setError(message);
+      toast.error(message);
     } finally {
       setIsSaving(false);
     }

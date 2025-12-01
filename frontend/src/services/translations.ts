@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { apiPath, extractErrorMessage, parseJsonOrThrow } from './api';
+import { apiPath, buildApiError, parseJsonOrThrow } from './api';
 
 export type SourceLanguage = 'pl' | 'en';
 
@@ -54,8 +54,7 @@ const fetchTranslations = async (
   });
 
   if (!response.ok) {
-    const message = await extractErrorMessage(response);
-    throw new Error(`Translation API request failed: ${response.status} ${message}`);
+    await buildApiError(response, 'Translation API request failed');
   }
 
   const payload = await parseJsonOrThrow<unknown>(

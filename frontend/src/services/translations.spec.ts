@@ -6,6 +6,7 @@ import {
   translationEntrySchema,
   type SimpleTranslationEntry,
 } from './translations';
+import { ApiError } from './api';
 
 describe('translation API helpers', () => {
   const fetchMock = vi.fn();
@@ -93,6 +94,22 @@ describe('translation API helpers', () => {
     await expect(fetchPolishTranslations('zamek')).rejects.toThrow(
       'Translation API request failed: 500 Server missing OPENAI_API_KEY',
     );
+  });
+
+  it('exposes retryAfterSeconds when backend returns 429', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 429,
+      headers: new Headers({ 'retry-after': '12' }),
+      json: async () => ({ error: 'Too many requests' }),
+    } as any);
+
+    const error = (await fetchPolishTranslations('zamek').catch((err) => err)) as ApiError;
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error.status).toBe(429);
+    expect(error.retryAfterSeconds).toBe(12);
+    expect(error.message).toBe('Too many requests');
   });
 
   it('throws when backend returns invalid JSON', async () => {
