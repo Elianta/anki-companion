@@ -6,12 +6,6 @@ export type SourceLanguage = "pl" | "en";
 
 export const OPENAI_MODEL = "gpt-4.1-mini";
 
-type SimpleSchemaConfig = {
-  name: string;
-  sourceLanguage: SourceLanguage;
-  targetLanguage: "ru";
-};
-
 const buildSystemPrompt = (sourceLanguage: SourceLanguage) =>
   `You are a bilingual lexicographer (${sourceLanguage === "pl" ? "Polish" : "English"} → Russian).
 
@@ -33,180 +27,96 @@ Provide 2 example sentences in ${
   } with Russian translations.
 Output MUST be valid JSON ONLY, matching exactly the schema below. No prose, no markdown.`;
 
-const createSimpleSchema = ({
-  name,
-  sourceLanguage,
-  targetLanguage,
-}: SimpleSchemaConfig) =>
-  ({
-    name,
-    strict: true,
-    schema: {
-      type: "object",
-      properties: {
-        raw_input: {
-          type: "string",
-          description:
-            "Original user text exactly as entered, including brackets and context.",
-        },
-        source_word: {
-          type: "string",
-          description:
-            sourceLanguage === "pl"
-              ? "Polish lemma stripped of brackets and bracketed hints."
-              : "English lemma stripped of brackets and bracketed hints.",
-        },
-        source_language: {
-          type: "string",
-          enum: [sourceLanguage],
-          description: `Source language code (${sourceLanguage === "pl" ? "Polish" : "English"}).`,
-        },
-        target_language: {
-          type: "string",
-          enum: [targetLanguage],
-          description: "Target language code (Russian).",
-        },
-        senses: {
-          type: "array",
-          description: "List of sense entries with Russian translations.",
-          items: {
-            type: "object",
-            properties: {
-              translation: {
-                type: "string",
-                description: "Russian translation for this sense.",
-              },
-              part_of_speech: {
-                type: ["string", "null"],
-                description: `Part of speech label (e.g., noun, verb, adj) in ${
-                  sourceLanguage === "pl" ? "Polish" : "English"
-                } language.`,
-              },
-              sense_note: {
-                type: ["string", "null"],
-                description: "Short Russian gloss clarifying nuance.",
-              },
-              usage_frequency: {
-                type: "object",
-                description:
-                  "Optional frequency metadata describing sense prevalence.",
-                properties: {
-                  level: {
-                    type: "string",
-                    enum: ["low", "medium", "high"],
-                    description: "Relative frequency bucket.",
-                  },
-                  comment: {
-                    type: "string",
-                    description:
-                      "Optional Russian remark elaborating on usage frequency.",
-                  },
-                },
-                required: ["level", "comment"],
-                additionalProperties: false,
-              },
-              examples: {
-                type: "array",
-                description: "Example sentences with translations.",
-                items: {
-                  type: "object",
-                  additionalProperties: false,
-                  required:
-                    sourceLanguage === "pl" ? ["pl", "ru"] : ["en", "ru"],
-                  properties:
-                    sourceLanguage === "pl"
-                      ? {
-                          pl: {
-                            type: "string",
-                            description: "Sentence in Polish.",
-                          },
-                          ru: {
-                            type: "string",
-                            description: "Russian translation of the sentence.",
-                          },
-                        }
-                      : {
-                          en: {
-                            type: "string",
-                            description: "Sentence in English.",
-                          },
-                          ru: {
-                            type: "string",
-                            description: "Russian translation of the sentence.",
-                          },
-                        },
-                },
-              },
-            },
-            required: [
-              "translation",
-              "part_of_speech",
-              "sense_note",
-              "usage_frequency",
-              "examples",
-            ],
-            additionalProperties: false,
-          },
-        },
-      },
-      required: [
-        "raw_input",
-        "source_word",
-        "source_language",
-        "target_language",
-        "senses",
-      ],
-      additionalProperties: false,
-    },
-  }) as const;
+const usageFrequencySchema = z
+  .strictObject({
+    level: z
+      .enum(["low", "medium", "high"])
+      .meta({ description: "Relative frequency bucket." }),
+    comment: z.string().optional().meta({
+      description: "Optional Russian remark elaborating on usage frequency.",
+    }),
+  })
+  .nullable()
+  .meta({
+    description: "Optional frequency metadata describing sense prevalence.",
+  });
 
-export const SIMPLE_SCHEMA_PL = createSimpleSchema({
-  name: "simple_translation_entry_pl",
-  sourceLanguage: "pl",
-  targetLanguage: "ru",
+const exampleSchemaPl = z.strictObject({
+  pl: z.string().meta({ description: "Sentence in Polish." }),
+  ru: z.string().meta({ description: "Russian translation of the sentence." }),
 });
 
-export const SIMPLE_SCHEMA_EN = createSimpleSchema({
-  name: "simple_translation_entry_en",
-  sourceLanguage: "en",
-  targetLanguage: "ru",
+const exampleSchemaEn = z.strictObject({
+  en: z.string().meta({ description: "Sentence in English." }),
+  ru: z.string().meta({ description: "Russian translation of the sentence." }),
 });
 
-export const translationEntrySchema = z.object({
-  raw_input: z.string(),
-  source_word: z.string(),
-  source_language: z.union([z.literal("pl"), z.literal("en")]),
-  target_language: z.literal("ru"),
-  senses: z
-    .array(
-      z.object({
-        translation: z.string(),
-        part_of_speech: z.string().nullable(),
-        sense_note: z.string().nullable(),
-        usage_frequency: z
-          .object({
-            level: z.enum(["low", "medium", "high"]),
-            comment: z.string().optional(),
-          })
-          .nullable(),
-        examples: z.array(
-          z.union([
-            z.object({
-              pl: z.string(),
-              ru: z.string(),
+const buildEntrySchema = (sourceLanguage: SourceLanguage) =>
+  z.strictObject({
+    raw_input: z.string().meta({
+      description:
+        "Original user text exactly as entered, including brackets and context.",
+    }),
+    source_word: z.string().meta({
+      description:
+        sourceLanguage === "pl"
+          ? "Polish lemma stripped of brackets and bracketed hints."
+          : "English lemma stripped of brackets and bracketed hints.",
+    }),
+    source_language: z.literal(sourceLanguage).meta({
+      description: `Source language code (${sourceLanguage === "pl" ? "Polish" : "English"}).`,
+    }),
+    target_language: z
+      .literal("ru")
+      .meta({ description: "Target language code (Russian)." }),
+    senses: z
+      .array(
+        z.strictObject({
+          translation: z
+            .string()
+            .meta({ description: "Russian translation for this sense." }),
+          part_of_speech: z
+            .string()
+            .nullable()
+            .meta({
+              description: `Part of speech label (e.g., noun, verb, adj) in ${
+                sourceLanguage === "pl" ? "Polish" : "English"
+              }.`,
             }),
-            z.object({
-              en: z.string(),
-              ru: z.string(),
-            }),
-          ])
-        ),
-      })
-    )
-    .default([]),
-});
+          sense_note: z
+            .string()
+            .nullable()
+            .meta({ description: "Short Russian gloss clarifying nuance." }),
+          usage_frequency: usageFrequencySchema,
+          examples: z
+            .array(sourceLanguage === "pl" ? exampleSchemaPl : exampleSchemaEn)
+            .meta({ description: "Example sentences with translations." }),
+        })
+      )
+      .default([])
+      .meta({
+        description: "List of sense entries with Russian translations.",
+      }),
+  });
+
+export const translationEntrySchema = z.union([
+  buildEntrySchema("pl"),
+  buildEntrySchema("en"),
+]);
 
 export type SimpleTranslationEntry = z.infer<typeof translationEntrySchema>;
+
+const buildJsonSchema = (sourceLanguage: SourceLanguage) => ({
+  name:
+    sourceLanguage === "pl"
+      ? "simple_translation_entry_pl"
+      : "simple_translation_entry_en",
+  strict: true,
+  schema: z.toJSONSchema(buildEntrySchema(sourceLanguage)),
+});
+
+export const SIMPLE_SCHEMA_PL = buildJsonSchema("pl");
+export const SIMPLE_SCHEMA_EN = buildJsonSchema("en");
 
 const buildRequestBody = (
   rawInput: string,
