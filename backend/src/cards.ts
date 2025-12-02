@@ -1,9 +1,6 @@
 import { z } from "zod";
 import { getCardSchema, type DraftNoteType } from "./card-schemas.js";
-import { OPENAI_MODEL } from "./translations.js";
-import { OpenAIClient } from "./types.js";
-
-type LangPair = "EN" | "PL";
+export type LangPair = "EN" | "PL";
 
 type Sense = {
   id: string;
@@ -15,7 +12,7 @@ type Sense = {
   examples?: string[];
 };
 
-type DraftEntry = {
+export type DraftEntry = {
   term: string;
   language: LangPair;
   noteType: DraftNoteType;
@@ -68,10 +65,7 @@ Part of speech: ${draft.sense.partOfSpeech ?? "Unknown"}
 `;
 };
 
-export async function generateCardFromOpenAI(
-  openaiClient: OpenAIClient,
-  draft: DraftEntry
-): Promise<GeneratedCard> {
+export const buildCardPrompt = (draft: DraftEntry) => {
   const schemaDefinition = getCardSchema(draft.noteType);
   if (!schemaDefinition) {
     throw new Error(`Unsupported note type: ${draft.noteType}`);
@@ -83,31 +77,15 @@ export async function generateCardFromOpenAI(
   );
   const userPrompt = buildCardUserPrompt(draft);
 
-  const completion = await openaiClient.chat.completions.create({
-    model: OPENAI_MODEL,
-    temperature: 0.2,
-    response_format: {
-      type: "json_schema",
-      json_schema: schemaDefinition.jsonSchema,
-    },
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
-  });
+  return { schemaDefinition, systemPrompt, userPrompt };
+};
 
-  const content = completion.choices?.[0]?.message?.content?.trim();
-  if (!content) {
-    throw new Error("OpenAI returned an empty response");
-  }
-
-  let parsedFields: unknown;
-  try {
-    parsedFields = JSON.parse(content);
-  } catch {
-    throw new Error("Unable to parse OpenAI response");
-  }
-
+export const parseGeneratedCard = (
+  draft: DraftEntry,
+  rawContent: string
+): GeneratedCard => {
+  const { schemaDefinition } = buildCardPrompt(draft);
+  const parsedFields = JSON.parse(rawContent);
   const fields = schemaDefinition.validator.parse(parsedFields);
 
   return {
@@ -116,4 +94,4 @@ export async function generateCardFromOpenAI(
     schemaName: schemaDefinition.name,
     generatedAt: new Date().toISOString(),
   };
-}
+};

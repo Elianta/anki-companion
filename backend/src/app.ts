@@ -1,13 +1,13 @@
 import cors from "cors";
 import express from "express";
-import { OpenAI } from "openai";
 import {
-  requestTranslationFromOpenAI,
   translationRequestSchema,
+  type TranslationRequest,
 } from "./translations.js";
-import { cardRequestSchema, generateCardFromOpenAI } from "./cards.js";
+import { cardRequestSchema } from "./cards.js";
 import z from "zod";
-import { OpenAIClient } from "./types.js";
+import { LLMClient } from "./types.js";
+import { createLLMClientFromEnv } from "./llm/factory.js";
 
 function parseAllowedOrigins(rawOrigins?: string) {
   return rawOrigins
@@ -17,12 +17,12 @@ function parseAllowedOrigins(rawOrigins?: string) {
 }
 
 type CreateAppOptions = {
-  openaiClient?: OpenAIClient;
+  llmClient?: LLMClient;
   allowedOrigins?: string[];
 };
 
 export function createApp(options: CreateAppOptions = {}) {
-  const { openaiClient, allowedOrigins } = options;
+  const { llmClient, allowedOrigins } = options;
   const app = express();
 
   const corsOrigin =
@@ -35,8 +35,10 @@ export function createApp(options: CreateAppOptions = {}) {
   });
 
   app.post("/api/translations", async (req, res) => {
-    if (!openaiClient) {
-      return res.status(500).json({ error: "Server missing OPENAI_API_KEY" });
+    if (!llmClient) {
+      return res
+        .status(500)
+        .json({ error: "Server missing LLM provider configuration" });
     }
 
     const parsedBody = translationRequestSchema.safeParse(req.body ?? {});
@@ -48,26 +50,25 @@ export function createApp(options: CreateAppOptions = {}) {
     }
 
     const { rawInput, sourceLanguage } = parsedBody.data;
+    const requestPayload: TranslationRequest = { rawInput, sourceLanguage };
 
     try {
-      const entry = await requestTranslationFromOpenAI(
-        openaiClient,
-        rawInput,
-        sourceLanguage
-      );
+      const entry = await llmClient.translate(requestPayload);
       return res.json(entry);
     } catch (error) {
-      console.error("OpenAI translation request failed", error);
+      console.error("LLM translation request failed", error);
       const status = (error as { status?: number })?.status ?? 500;
       return res.status(status).json({
-        error: (error as Error).message ?? "OpenAI translation failed",
+        error: (error as Error).message ?? "LLM translation failed",
       });
     }
   });
 
   app.post("/api/cards/generate", async (req, res) => {
-    if (!openaiClient) {
-      return res.status(500).json({ error: "Server missing OPENAI_API_KEY" });
+    if (!llmClient) {
+      return res
+        .status(500)
+        .json({ error: "Server missing LLM provider configuration" });
     }
 
     const parsedBody = cardRequestSchema.safeParse(req.body ?? {});
@@ -81,13 +82,13 @@ export function createApp(options: CreateAppOptions = {}) {
     const { draft } = parsedBody.data;
 
     try {
-      const card = await generateCardFromOpenAI(openaiClient, draft);
+      const card = await llmClient.generateCard(draft);
       return res.json(card);
     } catch (error) {
-      console.error("OpenAI card generation failed", error);
+      console.error("LLM card generation failed", error);
       const status = (error as { status?: number })?.status ?? 500;
       return res.status(status).json({
-        error: (error as Error).message ?? "OpenAI card generation failed",
+        error: (error as Error).message ?? "LLM card generation failed",
       });
     }
   });
@@ -98,14 +99,7 @@ export function createApp(options: CreateAppOptions = {}) {
 export function buildAppFromEnv() {
   const allowedOrigins = parseAllowedOrigins(process.env.ALLOWED_ORIGINS);
 
-  const openaiApiKey = process.env.OPENAI_API_KEY;
-  if (!openaiApiKey) {
-    console.warn("Missing OPENAI_API_KEY; set it before making requests.");
-  }
+  const llmClient = createLLMClientFromEnv();
 
-  const openai = openaiApiKey
-    ? new OpenAI({ apiKey: openaiApiKey })
-    : undefined;
-
-  return createApp({ openaiClient: openai, allowedOrigins });
+  return createApp({ llmClient, allowedOrigins });
 }
