@@ -98,7 +98,6 @@ export class OpenAILLMClient implements LLMClient {
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      reasoning_effort: "none",
     });
 
     const content = ensureContent(completion);
