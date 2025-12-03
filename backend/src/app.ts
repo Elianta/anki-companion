@@ -1,5 +1,5 @@
 import cors from "cors";
-import express from "express";
+import express, { type RequestHandler } from "express";
 import {
   translationRequestSchema,
   type TranslationRequest,
@@ -8,6 +8,7 @@ import { cardRequestSchema } from "./cards.js";
 import z from "zod";
 import { LLMClient } from "./types.js";
 import { createLLMClientFromEnv } from "./llm/factory.js";
+import { createRateLimitMiddleware } from "./rate-limit.js";
 
 function parseAllowedOrigins(rawOrigins?: string) {
   return rawOrigins
@@ -19,15 +20,19 @@ function parseAllowedOrigins(rawOrigins?: string) {
 type CreateAppOptions = {
   llmClient?: LLMClient;
   allowedOrigins?: string[];
+  rateLimitMiddleware?: RequestHandler | null;
 };
 
 export function createApp(options: CreateAppOptions = {}) {
-  const { llmClient, allowedOrigins } = options;
+  const { llmClient, allowedOrigins, rateLimitMiddleware } = options;
   const app = express();
 
   const corsOrigin =
     allowedOrigins && allowedOrigins.length > 0 ? allowedOrigins : true;
   app.use(cors({ origin: corsOrigin }));
+  if (rateLimitMiddleware) {
+    app.use(rateLimitMiddleware);
+  }
   app.use(express.json({ limit: "2mb" }));
 
   app.get("/api/health", (_req, res) => {
@@ -100,6 +105,7 @@ export function buildAppFromEnv() {
   const allowedOrigins = parseAllowedOrigins(process.env.ALLOWED_ORIGINS);
 
   const llmClient = createLLMClientFromEnv();
+  const rateLimitMiddleware = createRateLimitMiddleware();
 
-  return createApp({ llmClient, allowedOrigins });
+  return createApp({ llmClient, allowedOrigins, rateLimitMiddleware });
 }
