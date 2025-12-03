@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { DraftEntry, GeneratedCard } from '@/lib/db';
 import { apiPath, buildApiError, parseJsonOrThrow } from './api';
 
-const CARD_GENERATION_ENDPOINT = apiPath('/api/cards/generate');
+const CARD_GENERATION_ENDPOINT = apiPath('/api/cards-generate');
 
 const generatedCardSchema = z.object({
   noteType: z.enum(['EN: Default', 'PL: Default', 'PL: Verb']),

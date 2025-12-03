@@ -69,7 +69,7 @@ export function createApp(options: CreateAppOptions = {}) {
     }
   });
 
-  app.post("/api/cards/generate", async (req, res) => {
+  app.post("/api/cards-generate", async (req, res) => {
     if (!llmClient) {
       return res
         .status(500)
