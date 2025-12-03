@@ -7,8 +7,12 @@ import type {
   SimpleTranslationEntry,
   TranslationRequest,
 } from "./translations.js";
+import type {
+  GenerateContentParameters,
+  GenerateContentResponse,
+} from "@google/genai";
 
-export type LLMProvider = "openai";
+export type LLMProvider = "openai" | "googleai";
 
 export type LLMModelConfig = {
   provider: LLMProvider;
@@ -27,5 +31,13 @@ export type OpenAIClient = {
         params: ChatCompletionCreateParamsNonStreaming
       ) => Promise<ChatCompletion>;
     };
+  };
+};
+
+export type GeminiClient = {
+  models: {
+    generateContent: (
+      params: GenerateContentParameters
+    ) => Promise<GenerateContentResponse>;
   };
 };

@@ -1,9 +1,13 @@
 import { LLMModelConfig, LLMProvider } from "../types.js";
 
-export const SUPPORTED_PROVIDERS: readonly LLMProvider[] = ["openai"] as const;
+export const SUPPORTED_PROVIDERS: readonly LLMProvider[] = [
+  "openai",
+  "googleai",
+] as const;
 
 export const DEFAULT_MODELS: Record<LLMProvider, string> = {
   openai: "gpt-4.1-mini",
+  googleai: "gemini-2.5-flash",
 };
 
 export function getModelConfigFromEnv(): LLMModelConfig {
