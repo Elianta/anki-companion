@@ -17,33 +17,10 @@ Task:
 Given one ${sourceLanguage === "pl" ? "Polish" : "English"} word or short phrase, produce Russian translations.
 If multiple distinct senses exist, return multiple sense entries.
 If input is not a valid word or phrase in ${sourceLanguage === "pl" ? "Polish" : "English"}, return an empty senses array.
-Provide 2 example sentences in ${
+Provide 1 example sentence in ${
     sourceLanguage === "pl" ? "Polish" : "English"
-  } with Russian translations.
+  } with Russian translation.
 Output MUST be valid JSON ONLY, matching exactly the response schema. Do not output any fields that are not defined in the schema.`;
-
-const usageFrequencySchema = z
-  .strictObject({
-    level: z
-      .enum(["low", "medium", "high"])
-      .meta({ description: "Relative frequency bucket." }),
-    comment: z.string().nullable().meta({
-      description: "Optional Russian remark elaborating on usage frequency.",
-    }),
-  })
-  .meta({
-    description: "Optional frequency metadata describing sense prevalence.",
-  });
-
-const exampleSchemaPl = z.strictObject({
-  pl: z.string().meta({ description: "Sentence in Polish." }),
-  ru: z.string().meta({ description: "Russian translation of the sentence." }),
-});
-
-const exampleSchemaEn = z.strictObject({
-  en: z.string().meta({ description: "Sentence in English." }),
-  ru: z.string().meta({ description: "Russian translation of the sentence." }),
-});
 
 const buildEntrySchema = (sourceLanguage: SourceLanguage) =>
   z.strictObject({
@@ -57,12 +34,8 @@ const buildEntrySchema = (sourceLanguage: SourceLanguage) =>
           ? "Polish lemma stripped of brackets and bracketed hints."
           : "English lemma stripped of brackets and bracketed hints.",
     }),
-    source_language: z.enum([sourceLanguage]).meta({
-      description: `Source language code (${sourceLanguage === "pl" ? "Polish" : "English"}).`,
-    }),
-    target_language: z
-      .enum(["ru"])
-      .meta({ description: "Target language code (Russian)." }),
+    source_language: z.enum([sourceLanguage]),
+    target_language: z.enum(["ru"]),
     senses: z
       .array(
         z.strictObject({
@@ -81,10 +54,22 @@ const buildEntrySchema = (sourceLanguage: SourceLanguage) =>
             .string()
             .nullable()
             .meta({ description: "Short Russian gloss clarifying nuance." }),
-          usage_frequency: usageFrequencySchema,
-          examples: z
-            .array(sourceLanguage === "pl" ? exampleSchemaPl : exampleSchemaEn)
-            .meta({ description: "Example sentences with translations." }),
+          usage_frequency_level: z
+            .enum(["low", "medium", "high"])
+            .meta({ description: "Relative frequency bucket." }),
+          ...(sourceLanguage === "pl" && {
+            example_pl: z
+              .string()
+              .meta({ description: "Example sentence in Polish." }),
+          }),
+          ...(sourceLanguage === "en" && {
+            example_en: z
+              .string()
+              .meta({ description: "Example sentence in English." }),
+          }),
+          example_ru: z
+            .string()
+            .meta({ description: "Russian translation of the sentence." }),
         })
       )
       .default([])
