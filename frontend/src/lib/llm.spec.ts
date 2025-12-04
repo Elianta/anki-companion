@@ -23,14 +23,9 @@ const mockEntry: SimpleTranslationEntry = {
       translation: 'замок',
       part_of_speech: 'noun',
       sense_note: 'дверной механизм',
-      usage_frequency: {
-        level: 'high',
-        comment: 'часто',
-      },
-      examples: [
-        { pl: 'Zamknij zamek.', ru: 'Закрой замок.' },
-        { pl: 'Zamek był zepsuty.', ru: 'Замок был сломан.' },
-      ],
+      usage_frequency_level: 'high',
+      example_pl: 'Zamknij zamek.',
+      example_ru: 'Закрой замок.',
     },
   ],
 };
@@ -70,7 +65,7 @@ describe('disambiguate', () => {
       const originalSense = mockEntry.senses![index];
       expect(typeof sense.notes).toBe('string');
       expect(sense.partOfSpeech).toBe(originalSense.part_of_speech);
-      expect(sense.usageLevel).toBe(originalSense.usage_frequency?.level);
+      expect(sense.usageLevel).toBe(originalSense.usage_frequency_level);
       expect(sense.examples?.length).toBeGreaterThan(0);
     });
   });
@@ -86,13 +81,9 @@ describe('disambiguate', () => {
           translation: 'замок',
           part_of_speech: 'noun',
           sense_note: 'механизм',
-          usage_frequency: {
-            level: 'high',
-          },
-          examples: [
-            { en: 'Lock the door.', ru: 'Закрой дверь на замок.' },
-            { en: 'The lock jammed.', ru: 'Замок заклинило.' },
-          ],
+          usage_frequency_level: 'high',
+          example_en: 'Lock the door.',
+          example_ru: 'Закрой дверь на замок.',
         },
       ],
     } as SimpleTranslationEntry;
@@ -117,7 +108,7 @@ describe('disambiguate', () => {
     expect(sense.translationRU).toBe(entry.senses[0]!.translation);
     expect(typeof sense.notes).toBe('string');
     expect(sense.partOfSpeech).toBe('noun');
-    expect(sense.examples?.length).toBe(2);
+    expect(sense.examples?.length).toBe(1);
   });
 
   it('returns empty senses array when entry.senses is empty', async () => {

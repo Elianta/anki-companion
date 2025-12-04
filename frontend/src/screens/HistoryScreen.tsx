@@ -132,7 +132,6 @@ export function HistoryScreen() {
 
               <div className="grid gap-4">
                 {drafts.map((draft) => {
-                  console.log(draft);
                   const isSelected = !!draft.id && selectedIds.has(draft.id);
                   return (
                     <div

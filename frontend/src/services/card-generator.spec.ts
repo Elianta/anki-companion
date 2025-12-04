@@ -43,13 +43,13 @@ describe('generateCardPayload (backend API)', () => {
     fetchMock.mockResolvedValue({
       ok: true,
       json: async () => generatedCard,
-    } as any);
+    });
 
     const result = await generateCardPayload({ draft });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, options] = fetchMock.mock.calls[0];
-    expect(String(url)).toContain('/api/cards/generate');
+    expect(String(url)).toContain('/api/cards-generate');
     expect(options.method).toBe('POST');
     expect(JSON.parse(options.body)).toEqual({ draft });
     expect(result).toEqual(generatedCard);
@@ -60,7 +60,7 @@ describe('generateCardPayload (backend API)', () => {
       ok: false,
       status: 500,
       json: async () => ({ error: 'Server missing OPENAI_API_KEY' }),
-    } as any);
+    });
 
     await expect(generateCardPayload({ draft })).rejects.toThrow(
       'Card generation request failed: 500 Server missing OPENAI_API_KEY',
@@ -73,7 +73,7 @@ describe('generateCardPayload (backend API)', () => {
       status: 429,
       headers: new Headers({ 'retry-after': '20' }),
       json: async () => ({ error: 'Too many requests' }),
-    } as any);
+    });
 
     const error = (await generateCardPayload({ draft }).catch((err) => err)) as ApiError;
 
@@ -89,7 +89,7 @@ describe('generateCardPayload (backend API)', () => {
       json: async () => {
         throw new Error('bad json');
       },
-    } as any);
+    });
 
     await expect(generateCardPayload({ draft })).rejects.toThrow(
       'Card generation API returned invalid JSON',
@@ -105,7 +105,7 @@ describe('generateCardPayload (backend API)', () => {
         schemaName: 'pl_default_note',
         generatedAt: '2024-01-01T00:00:00.000Z',
       }),
-    } as any);
+    });
 
     await expect(generateCardPayload({ draft })).rejects.toThrow();
   });

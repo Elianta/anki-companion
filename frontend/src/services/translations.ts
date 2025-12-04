@@ -16,24 +16,10 @@ export const translationEntrySchema = z.object({
         translation: z.string(),
         part_of_speech: z.string().nullable(),
         sense_note: z.string().nullable(),
-        usage_frequency: z
-          .object({
-            level: z.enum(['low', 'medium', 'high']),
-            comment: z.string().optional(),
-          })
-          .nullable(),
-        examples: z.array(
-          z.union([
-            z.object({
-              pl: z.string(),
-              ru: z.string(),
-            }),
-            z.object({
-              en: z.string(),
-              ru: z.string(),
-            }),
-          ]),
-        ),
+        usage_frequency_level: z.enum(['low', 'medium', 'high']),
+        example_pl: z.string().optional(),
+        example_en: z.string().optional(),
+        example_ru: z.string(),
       }),
     )
     .default([]),

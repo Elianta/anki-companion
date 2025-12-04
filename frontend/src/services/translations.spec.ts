@@ -32,14 +32,9 @@ describe('translation API helpers', () => {
           translation: 'замок',
           part_of_speech: 'noun',
           sense_note: 'дверной механизм',
-          usage_frequency: {
-            level: 'high',
-            comment: 'часто используется',
-          },
-          examples: [
-            { pl: 'Zamknij zamek.', ru: 'Закрой замок.' },
-            { pl: 'Zamek był zepsuty.', ru: 'Замок был сломан.' },
-          ],
+          usage_frequency_level: 'high',
+          example_pl: 'Zamknij zamek.',
+          example_ru: 'Закрой замок.',
         },
       ],
     };

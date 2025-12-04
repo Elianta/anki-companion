@@ -22,32 +22,34 @@ export type DisambiguateResult = {
 const buildFrequencyNotes = (
   sense: SimpleTranslationEntry['senses'][number],
 ): string | undefined => {
-  const level =
-    sense.usage_frequency?.level === 'high'
-      ? 'высокая'
-      : sense.usage_frequency?.level === 'medium'
-        ? 'средняя'
-        : 'низкая';
+  let level: string | undefined;
+  switch (sense.usage_frequency_level) {
+    case 'high':
+      level = 'высокая';
+      break;
+    case 'medium':
+      level = 'средняя';
+      break;
+    case 'low':
+      level = 'низкая';
+      break;
+    default:
+      break;
+  }
   const levelStr = level ? `частота: ${level}` : undefined;
-  const freq = sense.usage_frequency?.comment
-    ? `${levelStr} • ${sense.usage_frequency.comment}`
-    : levelStr;
-
-  return freq;
+  return levelStr;
 };
 
 const buildExamples = (sense: SimpleTranslationEntry['senses'][number]): string[] | undefined => {
-  return sense.examples
-    .map((example) => {
-      if ('pl' in example) {
-        return `${example.pl} — ${example.ru}`;
-      }
-      if ('en' in example) {
-        return `${example.en} — ${example.ru}`;
-      }
-      return '';
-    })
-    .filter(Boolean);
+  const examples = [];
+  const { example_pl, example_en, example_ru } = sense;
+  if (example_pl) {
+    examples.push(`${example_pl} — ${example_ru}`);
+  }
+  if (example_en) {
+    examples.push(`${example_en} — ${example_ru}`);
+  }
+  return examples;
 };
 
 const mapEntryToResult = (
@@ -61,7 +63,7 @@ const mapEntryToResult = (
     translationRU: sense.translation,
     notes: sense.sense_note || undefined,
     partOfSpeech: sense.part_of_speech || undefined,
-    usageLevel: sense.usage_frequency?.level,
+    usageLevel: sense.usage_frequency_level,
     frequencyNotes: buildFrequencyNotes(sense),
     examples: buildExamples(sense),
   })),
