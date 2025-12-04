@@ -50,7 +50,7 @@ export function AppShell() {
       <header className="border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-6 md:flex-row md:items-center md:justify-between sm:px-6 lg:px-8">
           <div className="flex flex-col gap-3">
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Anki Companion</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Ankify</p>
           </div>
           <nav className="hidden items-center gap-4 md:flex">
             <button
