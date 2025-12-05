@@ -34,7 +34,6 @@ const cardFields = {
   Example2Spaces: "_____ был zepsuty.",
   Example2RU: "Замок был сломан.",
   Synonym: "",
-  Antonym: "",
 };
 
 const baseCard: GeneratedCard = {
