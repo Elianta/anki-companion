@@ -15,7 +15,7 @@ Do NOT echo the square brackets text in translations; use it only to pick the co
 
 Task:
 Given one ${sourceLanguage === "pl" ? "Polish" : "English"} word or short phrase, produce Russian translations.
-If multiple distinct senses exist, return multiple sense entries.
+If multiple distinct senses exist, return maximum 2 most relevant senses.
 If input is not a valid word or phrase in ${sourceLanguage === "pl" ? "Polish" : "English"}, return an empty senses array.
 Provide 1 example sentence in ${
     sourceLanguage === "pl" ? "Polish" : "English"
@@ -74,7 +74,8 @@ const buildEntrySchema = (sourceLanguage: SourceLanguage) =>
       )
       .default([])
       .meta({
-        description: "List of sense entries with Russian translations.",
+        description:
+          "List of sense entries with Russian translations. Return maximum 2 most relevant senses.",
       }),
   });
 
