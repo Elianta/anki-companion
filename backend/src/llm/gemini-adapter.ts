@@ -92,7 +92,7 @@ export class GeminiLLMClient implements LLMClient {
         temperature: this.temperature,
         responseMimeType: "application/json",
         systemInstruction: { role: "system", parts: [{ text: systemPrompt }] },
-        responseJsonSchema: schemaDefinition.jsonSchema,
+        responseJsonSchema: schemaDefinition.jsonSchema.schema,
       },
     });
 
