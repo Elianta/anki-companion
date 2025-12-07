@@ -2,11 +2,12 @@ import cors from "cors";
 import express, { type RequestHandler } from "express";
 import {
   translationRequestSchema,
+  translationPayloadSchema,
   type TranslationRequest,
 } from "./translations.js";
 import { cardRequestSchema } from "./cards.js";
 import z from "zod";
-import { LLMClient } from "./types.js";
+import { LLMClient, LLMModelConfig } from "./types.js";
 import { createLLMClientFromEnv } from "./llm/factory.js";
 import { createRateLimitMiddleware } from "./rate-limit.js";
 
@@ -18,13 +19,13 @@ function parseAllowedOrigins(rawOrigins?: string) {
 }
 
 type CreateAppOptions = {
-  llmClient?: LLMClient;
+  llmClientFactory: (selection?: Partial<LLMModelConfig>) => LLMClient;
   allowedOrigins?: string[];
   rateLimitMiddleware?: RequestHandler | null;
 };
 
-export function createApp(options: CreateAppOptions = {}) {
-  const { llmClient, allowedOrigins, rateLimitMiddleware } = options;
+export function createApp(options: CreateAppOptions) {
+  const { llmClientFactory, allowedOrigins, rateLimitMiddleware } = options;
   const app = express();
 
   const corsOrigin =
@@ -40,12 +41,6 @@ export function createApp(options: CreateAppOptions = {}) {
   });
 
   app.post("/api/translations", async (req, res) => {
-    if (!llmClient) {
-      return res
-        .status(500)
-        .json({ error: "Server missing LLM provider configuration" });
-    }
-
     const parsedBody = translationRequestSchema.safeParse(req.body ?? {});
     if (!parsedBody.success) {
       return res.status(400).json({
@@ -54,11 +49,23 @@ export function createApp(options: CreateAppOptions = {}) {
       });
     }
 
-    const { rawInput, sourceLanguage } = parsedBody.data;
-    const requestPayload: TranslationRequest = { rawInput, sourceLanguage };
+    let client: LLMClient;
 
     try {
-      const entry = await llmClient.translate(requestPayload);
+      client = llmClientFactory({
+        provider: parsedBody.data.llmProvider,
+        model: parsedBody.data.llmModel,
+      });
+    } catch (error) {
+      return res
+        .status(500)
+        .json({ error: "Server missing LLM provider configuration" });
+    }
+
+    const payload = translationPayloadSchema.parse(parsedBody.data);
+
+    try {
+      const entry = await client.translate(payload);
       return res.json(entry);
     } catch (error) {
       console.error("LLM translation request failed", error);
@@ -70,24 +77,27 @@ export function createApp(options: CreateAppOptions = {}) {
   });
 
   app.post("/api/cards-generate", async (req, res) => {
-    if (!llmClient) {
+    const parsedBody = cardRequestSchema.safeParse(req.body ?? {});
+    if (!parsedBody.success) {
+      return res.status(400).json({
+        error: "Invalid card generation request",
+        details: z.treeifyError(parsedBody.error),
+      });
+    }
+
+    const { draft, llmModel, llmProvider } = parsedBody.data;
+    let client: LLMClient;
+
+    try {
+      client = llmClientFactory({ provider: llmProvider, model: llmModel });
+    } catch (error) {
       return res
         .status(500)
         .json({ error: "Server missing LLM provider configuration" });
     }
 
-    const parsedBody = cardRequestSchema.safeParse(req.body ?? {});
-    if (!parsedBody.success) {
-      return res.status(400).json({
-        error: "Invalid card generation request",
-        details: parsedBody.error.flatten(),
-      });
-    }
-
-    const { draft } = parsedBody.data;
-
     try {
-      const card = await llmClient.generateCard(draft);
+      const card = await client.generateCard(draft);
       return res.json(card);
     } catch (error) {
       console.error("LLM card generation failed", error);
@@ -104,8 +114,13 @@ export function createApp(options: CreateAppOptions = {}) {
 export function buildAppFromEnv() {
   const allowedOrigins = parseAllowedOrigins(process.env.ALLOWED_ORIGINS);
 
-  const llmClient = createLLMClientFromEnv();
+  const llmClientFactory = (selection?: Partial<LLMModelConfig>) =>
+    createLLMClientFromEnv(selection);
   const rateLimitMiddleware = createRateLimitMiddleware();
 
-  return createApp({ llmClient, allowedOrigins, rateLimitMiddleware });
+  return createApp({
+    llmClientFactory,
+    allowedOrigins,
+    rateLimitMiddleware,
+  });
 }

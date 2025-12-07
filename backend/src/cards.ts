@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getCardSchema, type DraftNoteType } from "./card-schemas.js";
+import { LLM_MODELS, LLM_PROVIDERS } from "./types.js";
 export type LangPair = "EN" | "PL";
 
 type Sense = {
@@ -34,6 +35,8 @@ export const cardRequestSchema = z.object({
       examples: z.array(z.string()).optional(),
     }),
   }),
+  llmProvider: z.enum(LLM_PROVIDERS),
+  llmModel: z.enum(LLM_MODELS),
 });
 
 export type CardRequest = z.infer<typeof cardRequestSchema>;

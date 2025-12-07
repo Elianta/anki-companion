@@ -12,11 +12,15 @@ import type {
   GenerateContentResponse,
 } from "@google/genai";
 
-export type LLMProvider = "openai" | "googleai";
+export const LLM_PROVIDERS = ["googleai", "openai"] as const;
+export type LLMProvider = (typeof LLM_PROVIDERS)[number];
+
+export const LLM_MODELS = ["gpt-4.1-mini", "gemini-2.5-flash"] as const;
+export type LLMModel = (typeof LLM_MODELS)[number];
 
 export type LLMModelConfig = {
   provider: LLMProvider;
-  model: string;
+  model: LLMModel;
 };
 
 export type LLMClient = {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { LLM_MODELS, LLM_PROVIDERS } from "./types.js";
 
 export type SourceLanguage = "pl" | "en";
 
@@ -101,9 +102,16 @@ export const SIMPLE_SCHEMA_EN = buildJsonSchema("en");
 export const translationRequestSchema = z.object({
   rawInput: z.string().trim().min(1, "rawInput is required"),
   sourceLanguage: z.enum(["pl", "en"]),
+  llmProvider: z.enum(LLM_PROVIDERS).optional(),
+  llmModel: z.enum(LLM_MODELS).optional(),
 });
 
-export type TranslationRequest = z.infer<typeof translationRequestSchema>;
+export const translationPayloadSchema = translationRequestSchema.pick({
+  rawInput: true,
+  sourceLanguage: true,
+});
+
+export type TranslationRequest = z.infer<typeof translationPayloadSchema>;
 
 export type TranslationPrompt = {
   systemPrompt: string;
