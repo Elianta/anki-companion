@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { DraftEntry, GeneratedCard } from '@/lib/db';
 import { apiPath, buildApiError, parseJsonOrThrow } from './api';
+import { getLLMSelection } from '@/stores/llm';
 
 const CARD_GENERATION_ENDPOINT = apiPath('/api/cards-generate');
 
@@ -21,7 +22,7 @@ export async function generateCardPayload({
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ draft }),
+    body: JSON.stringify({ draft, ...getLLMSelection() }),
   });
 
   if (!response.ok) {

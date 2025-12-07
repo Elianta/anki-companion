@@ -4,6 +4,7 @@ import { BookmarkIcon, ClockIcon, HomeIcon, UploadCloudIcon } from 'lucide-react
 import { useSessionStore } from '@/stores/session';
 import { useEffect, useState } from 'react';
 import { fetchDrafts } from '@/services/draft-storage';
+import { LLMSelect } from '@/components/LLMSelect';
 
 const NAV_LINKS = [
   { to: '/', label: 'Search', icon: HomeIcon },
@@ -49,8 +50,12 @@ export function AppShell() {
     <div className="grid grid-rows-[max-content_minmax(400px,1fr)] min-h-svh bg-background text-foreground">
       <header className="border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-6 md:flex-row md:items-center md:justify-between sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-3">
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Ankify</p>
+          <div className="flex w-full flex-col gap-3">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-col gap-2">
+                <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Ankify</p>
+              </div>
+            </div>
           </div>
           <nav className="hidden items-center gap-4 md:flex">
             <button
@@ -75,6 +80,9 @@ export function AppShell() {
                 {link.label}
               </Link>
             ))}
+            <div className="hidden md:block">
+              <LLMSelect />
+            </div>
           </nav>
         </div>
       </header>

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { apiPath, buildApiError, parseJsonOrThrow } from './api';
+import { getLLMSelection } from '@/stores/llm';
 
 export type SourceLanguage = 'pl' | 'en';
 
@@ -36,7 +37,7 @@ const fetchTranslations = async (
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ rawInput, sourceLanguage }),
+    body: JSON.stringify({ rawInput, sourceLanguage, ...getLLMSelection() }),
   });
 
   if (!response.ok) {
