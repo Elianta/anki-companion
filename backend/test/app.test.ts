@@ -97,7 +97,7 @@ const createMockOpenAI = (
 
 describe("createApp", () => {
   it("returns health status", async () => {
-    const app = createApp();
+    const app = createApp({ llmClientFactory: () => createMockLLMClient() });
     const res = await request(app).get("/api/health");
 
     expect(res.status).toBe(200);
@@ -105,7 +105,7 @@ describe("createApp", () => {
   });
 
   it("validates translation payload", async () => {
-    const app = createApp({ llmClient: createMockLLMClient() });
+    const app = createApp({ llmClientFactory: () => createMockLLMClient() });
     const res = await request(app).post("/api/translations").send({});
 
     expect(res.status).toBe(400);
@@ -113,24 +113,41 @@ describe("createApp", () => {
   });
 
   it("rejects translation requests without an LLM client", async () => {
-    const app = createApp();
-    const res = await request(app)
-      .post("/api/translations")
-      .send({ rawInput: "zamek", sourceLanguage: "pl" });
+    const app = createApp({
+      llmClientFactory: () =>
+        (() => {
+          throw new Error("No LLM client.");
+        })(),
+    });
+
+    const res = await request(app).post("/api/translations").send({
+      rawInput: "zamek",
+      sourceLanguage: "pl",
+      llmProvider: "openai",
+      llmModel: "gpt-4.1-mini",
+    });
 
     expect(res.status).toBe(500);
     expect(res.body.error).toMatch(/missing LLM provider/i);
   });
 
-  it("forwards translation requests to the LLM client and returns parsed entry", async () => {
+  it("forwards translation requests to the selected LLM client and returns parsed entry", async () => {
     const llmClient = createMockLLMClient();
-    const app = createApp({ llmClient });
+    const llmClientFactory = vi.fn().mockReturnValue(llmClient);
+    const app = createApp({ llmClientFactory });
 
-    const res = await request(app)
-      .post("/api/translations")
-      .send({ rawInput: translationEntry.raw_input, sourceLanguage: "pl" });
+    const res = await request(app).post("/api/translations").send({
+      rawInput: translationEntry.raw_input,
+      sourceLanguage: "pl",
+      llmProvider: "openai",
+      llmModel: "gpt-4.1-mini",
+    });
 
     expect(res.status).toBe(200);
+    expect(llmClientFactory).toHaveBeenCalledWith({
+      provider: "openai",
+      model: "gpt-4.1-mini",
+    });
     expect(llmClient.translate).toHaveBeenCalledWith({
       rawInput: translationEntry.raw_input,
       sourceLanguage: "pl",
@@ -143,18 +160,19 @@ describe("createApp", () => {
       .fn()
       .mockRejectedValue(new Error("translation failure"));
     const llmClient = createMockLLMClient({ translate });
-    const app = createApp({ llmClient });
+    const app = createApp({ llmClientFactory: () => llmClient });
 
-    const res = await request(app)
-      .post("/api/translations")
-      .send({ rawInput: "zamek", sourceLanguage: "pl" });
+    const res = await request(app).post("/api/translations").send({
+      rawInput: "zamek",
+      sourceLanguage: "pl",
+    });
 
     expect(res.status).toBe(500);
     expect(res.body.error).toMatch(/translation failure/i);
   });
 
   it("validates card generation payload", async () => {
-    const app = createApp({ llmClient: createMockLLMClient() });
+    const app = createApp({ llmClientFactory: () => createMockLLMClient() });
     const res = await request(app).post("/api/cards-generate").send({});
 
     expect(res.status).toBe(400);
@@ -162,7 +180,12 @@ describe("createApp", () => {
   });
 
   it("rejects card generation without an LLM client", async () => {
-    const app = createApp();
+    const app = createApp({
+      llmClientFactory: () =>
+        (() => {
+          throw new Error("No LLM client.");
+        })(),
+    });
     const res = await request(app)
       .post("/api/cards-generate")
       .send({
@@ -172,6 +195,8 @@ describe("createApp", () => {
           noteType: "PL: Default",
           sense: { id: "sense-1", translationRU: "замок" },
         },
+        llmProvider: "openai",
+        llmModel: "gpt-4.1-mini",
       });
 
     expect(res.status).toBe(500);
@@ -180,7 +205,7 @@ describe("createApp", () => {
 
   it("forwards card generation requests to the LLM client", async () => {
     const llmClient = createMockLLMClient();
-    const app = createApp({ llmClient });
+    const app = createApp({ llmClientFactory: () => llmClient });
 
     const res = await request(app)
       .post("/api/cards-generate")
@@ -196,6 +221,8 @@ describe("createApp", () => {
             partOfSpeech: "noun",
           },
         },
+        llmProvider: "openai",
+        llmModel: "gpt-4.1-mini",
       });
 
     expect(res.status).toBe(200);
@@ -220,7 +247,8 @@ describe("createApp", () => {
   it("returns error when card generation fails", async () => {
     const generateCard = vi.fn().mockRejectedValue(new Error("card failure"));
     const llmClient = createMockLLMClient({ generateCard });
-    const app = createApp({ llmClient });
+    const llmClientFactory = vi.fn().mockReturnValue(llmClient);
+    const app = createApp({ llmClientFactory });
 
     const res = await request(app)
       .post("/api/cards-generate")
@@ -231,9 +259,15 @@ describe("createApp", () => {
           noteType: "PL: Default",
           sense: { id: "sense-1", translationRU: "замок" },
         },
+        llmProvider: "googleai",
+        llmModel: "gemini-2.5-flash",
       });
 
     expect(res.status).toBe(500);
+    expect(llmClientFactory).toHaveBeenCalledWith({
+      provider: "googleai",
+      model: "gemini-2.5-flash",
+    });
     expect(res.body.error).toMatch(/card failure/i);
   });
 });

@@ -7,12 +7,14 @@ import {
   type SimpleTranslationEntry,
 } from './translations';
 import { ApiError } from './api';
+import { useLLMStore, DEFAULT_LLM_MODEL, DEFAULT_LLM_PROVIDER } from '@/stores/llm';
 
 describe('translation API helpers', () => {
   const fetchMock = vi.fn();
 
   beforeEach(() => {
     vi.stubGlobal('fetch', fetchMock);
+    useLLMStore.setState({ llmProvider: DEFAULT_LLM_PROVIDER, llmModel: DEFAULT_LLM_MODEL });
   });
 
   afterEach(() => {
@@ -51,7 +53,12 @@ describe('translation API helpers', () => {
     expect(String(url)).toContain('/api/translations');
     expect(options.method).toBe('POST');
     expect(options.headers).toEqual({ 'Content-Type': 'application/json' });
-    expect(JSON.parse(options.body)).toEqual({ rawInput, sourceLanguage: 'pl' });
+    expect(JSON.parse(options.body)).toEqual({
+      rawInput,
+      sourceLanguage: 'pl',
+      llmProvider: DEFAULT_LLM_PROVIDER,
+      llmModel: DEFAULT_LLM_MODEL,
+    });
     expect(result).toEqual(payload);
   });
 
@@ -74,7 +81,12 @@ describe('translation API helpers', () => {
 
     const [url, options] = fetchMock.mock.calls[0];
     expect(String(url)).toContain('/api/translations');
-    expect(JSON.parse(options.body)).toEqual({ rawInput, sourceLanguage: 'en' });
+    expect(JSON.parse(options.body)).toEqual({
+      rawInput,
+      sourceLanguage: 'en',
+      llmProvider: DEFAULT_LLM_PROVIDER,
+      llmModel: DEFAULT_LLM_MODEL,
+    });
     expect(result.source_language).toBe('en');
     expect(result).toEqual(payload);
   });

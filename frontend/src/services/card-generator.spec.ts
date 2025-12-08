@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DraftEntry } from '@/lib/db';
 import { generateCardPayload } from './card-generator';
 import { ApiError } from './api';
+import { useLLMStore, DEFAULT_LLM_MODEL, DEFAULT_LLM_PROVIDER } from '@/stores/llm';
 
 describe('generateCardPayload (backend API)', () => {
   const fetchMock = vi.fn();
@@ -25,6 +26,7 @@ describe('generateCardPayload (backend API)', () => {
 
   beforeEach(() => {
     vi.stubGlobal('fetch', fetchMock);
+    useLLMStore.setState({ llmProvider: DEFAULT_LLM_PROVIDER, llmModel: DEFAULT_LLM_MODEL });
   });
 
   afterEach(() => {
@@ -51,7 +53,11 @@ describe('generateCardPayload (backend API)', () => {
     const [url, options] = fetchMock.mock.calls[0];
     expect(String(url)).toContain('/api/cards-generate');
     expect(options.method).toBe('POST');
-    expect(JSON.parse(options.body)).toEqual({ draft });
+    expect(JSON.parse(options.body)).toEqual({
+      draft,
+      llmProvider: DEFAULT_LLM_PROVIDER,
+      llmModel: DEFAULT_LLM_MODEL,
+    });
     expect(result).toEqual(generatedCard);
   });
 
