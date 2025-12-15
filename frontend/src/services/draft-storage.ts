@@ -22,7 +22,25 @@ type SaveDraftParams = {
   language: LangPair;
 };
 
-export async function saveDraftFromSense({ sense, term, language }: SaveDraftParams) {
+type SaveDraftOptions = {
+  backgroundGenerate?: boolean;
+};
+
+const maybeGenerateCard = async (draftId: number, background: boolean) => {
+  if (background) {
+    void generateCardForDraft(draftId).catch((error) => {
+      console.warn('Background card generation failed', error);
+    });
+    return;
+  }
+
+  await generateCardForDraft(draftId);
+};
+
+export async function saveDraftFromSense(
+  { sense, term, language }: SaveDraftParams,
+  { backgroundGenerate = false }: SaveDraftOptions = {},
+) {
   const baseEntry: DraftEntry = {
     term,
     language,
@@ -41,13 +59,13 @@ export async function saveDraftFromSense({ sense, term, language }: SaveDraftPar
 
   if (existing) {
     if (!existing.card) {
-      await generateCardForDraft(existing.id!);
+      await maybeGenerateCard(existing.id!, backgroundGenerate);
     }
     return existing.id;
   }
 
   const draftId = await db.drafts.add(baseEntry);
-  await generateCardForDraft(draftId);
+  await maybeGenerateCard(draftId, backgroundGenerate);
   return draftId;
 }
 

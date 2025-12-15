@@ -35,8 +35,12 @@ export function SensesScreen() {
     setIsSaving(true);
     setError(null);
     try {
-      await saveDraftFromSense({ sense: selectedSense, term, language });
-      await navigate({ to: '/draft' });
+      await saveDraftFromSense(
+        { sense: selectedSense, term, language },
+        { backgroundGenerate: true },
+      );
+      toast.success('Draft saved. Generating card in the background.');
+      navigate({ to: '/' });
     } catch (err) {
       console.warn('Failed to save draft', err);
       const message = isRateLimitError(err)
@@ -142,7 +146,7 @@ export function SensesScreen() {
                     disabled={isSaving || !selectedSense}
                     data-test-id="save-draft-button"
                   >
-                    {isSaving ? 'Saving...' : 'Save to draft'}
+                    Save to draft
                   </Button>
                 </div>
               </div>

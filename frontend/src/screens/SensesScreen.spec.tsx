@@ -96,13 +96,16 @@ describe('SensesScreen', () => {
     fireEvent.click(screen.getByTestId('save-draft-button'));
 
     await waitFor(() => {
-      expect(saveDraftMock).toHaveBeenCalledWith({
-        sense: expect.objectContaining({ id: 'b' }),
-        term: 'test',
-        language: 'EN',
-      });
+      expect(saveDraftMock).toHaveBeenCalledWith(
+        {
+          sense: expect.objectContaining({ id: 'b' }),
+          term: 'test',
+          language: 'EN',
+        },
+        { backgroundGenerate: true },
+      );
     });
 
-    expect(navigateMock).toHaveBeenCalledWith({ to: '/draft' });
+    expect(navigateMock).toHaveBeenCalledWith({ to: '/' });
   });
 });
