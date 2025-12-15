@@ -12,9 +12,14 @@ export function HomeScreen() {
   const [term, setTerm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const language = useSessionStore((state) => state.language);
+  const setLanguage = useSessionStore((state) => state.setLanguage);
   const setSessionTerm = useSessionStore((state) => state.setTerm);
   const setSenses = useSessionStore((state) => state.setSenses);
   const navigate = useNavigate({ from: '/' });
+
+  const toggleLanguage = () => {
+    setLanguage(language === 'EN' ? 'PL' : 'EN');
+  };
 
   const handleSearch = async () => {
     const normalized = term.trim();
@@ -50,6 +55,17 @@ export function HomeScreen() {
         onSubmit={handleSubmit}
         className="relative flex items-stretch overflow-hidden rounded-full border border-slate-200 bg-white shadow-sm transition focus-within:shadow-md"
       >
+        <Button
+          type="button"
+          size="lg"
+          variant="secondary"
+          onClick={toggleLanguage}
+          className="absolute left-0 top-1/2 hidden h-16 w-16 -translate-y-1/2 rounded-full rounded-tr-none border-0 bg-slate-900 px-0 text-base font-semibold text-white shadow-md transition focus-visible:ring-0 hover:bg-slate-800 focus-visible:bg-slate-800 md:inline-flex md:h-20 md:w-20"
+          data-test-id="language-toggle"
+          aria-label="Toggle source language"
+        >
+          {language}
+        </Button>
         <Input
           data-test-id="term-input"
           name="term"
@@ -57,13 +73,13 @@ export function HomeScreen() {
           onChange={(event) => setTerm(event.target.value)}
           placeholder="Enter a word or chunk (context in [brackets])"
           maxLength={50}
-          className="h-16 flex-1 rounded-none border-0 px-6 pr-20 text-base shadow-none focus-visible:border-transparent focus-visible:ring-0 md:h-20 md:text-lg md:pr-26"
+          className="h-16 flex-1 rounded-none border-0 px-6 pr-20 text-base shadow-none focus-visible:border-transparent focus-visible:ring-0 md:h-20 md:pl-24 md:pr-24 md:text-lg"
         />
         <Button
           type="submit"
           size="lg"
           variant="secondary"
-          className="absolute right-0 top-1/2 h-16 w-16 -translate-y-1/2 rounded-full border-0 bg-slate-900 px-0 text-base font-semibold text-white shadow-md transition focus-visible:ring-0 hover:bg-slate-800 focus-visible:bg-slate-800 md:h-20 md:w-20"
+          className="absolute right-0 top-1/2 h-16 w-16 -translate-y-1/2 rounded-full rounded-bl-none border-0 bg-slate-900 px-0 text-base font-semibold text-white shadow-md transition focus-visible:ring-0 hover:bg-slate-800 focus-visible:bg-slate-800 md:h-20 md:w-20"
           disabled={isSubmitting}
           data-test-id="search-button"
         >

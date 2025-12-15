@@ -58,16 +58,6 @@ export function AppShell() {
             </div>
           </div>
           <nav className="hidden items-center gap-4 md:flex">
-            <button
-              type="button"
-              disabled={!isHomeRoute}
-              onClick={toggleLanguage}
-              className="h-10 w-10 rounded-full border border-slate-200 bg-white text-xs font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-              aria-label="Toggle language"
-              data-test-id="language-toggle-desktop"
-            >
-              {language}
-            </button>
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.to}

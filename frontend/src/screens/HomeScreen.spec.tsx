@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 
 import { HomeScreen } from './HomeScreen';
-import { LanguageSelect } from '@/components/LanguageSelect';
 import { disambiguate } from '@/lib/llm';
 import { useSessionStore, createSessionSnapshot } from '@/stores/session';
 
@@ -19,15 +18,8 @@ vi.mock('@/lib/llm', () => ({
 
 const disambiguateMock = vi.mocked(disambiguate);
 
-const renderScreen = () =>
-  render(
-    <>
-      <LanguageSelect />
-      <HomeScreen />
-    </>,
-  );
-const getLangGroup = () => screen.getByTestId('language-select');
-const getLangOption = (lang: 'EN' | 'PL') => screen.getByTestId(`language-option-${lang}`);
+const renderScreen = () => render(<HomeScreen />);
+const getLanguageToggle = () => screen.getByTestId('language-toggle');
 const getTermInput = () => screen.getByTestId('term-input');
 const getSearchButton = () => screen.getByTestId('search-button');
 
@@ -38,16 +30,28 @@ describe('HomeScreen', () => {
     disambiguateMock.mockReset();
   });
 
-  it('renders the input and language selector', () => {
+  it('renders the input and language toggle', () => {
     renderScreen();
     expect(getTermInput()).toBeInTheDocument();
-    expect(getLangGroup()).toBeInTheDocument();
+    expect(getLanguageToggle()).toBeInTheDocument();
   });
 
   it('defaults language to EN', () => {
     renderScreen();
-    expect(getLangOption('EN')).toHaveAttribute('data-state', 'on');
-    expect(getLangOption('PL')).toHaveAttribute('data-state', 'off');
+    expect(getLanguageToggle()).toHaveTextContent('EN');
+  });
+
+  it('toggles the language when clicking the toggle button', async () => {
+    renderScreen();
+    const toggle = getLanguageToggle();
+
+    await userEvent.click(toggle);
+    expect(useSessionStore.getState().language).toBe('PL');
+    expect(toggle).toHaveTextContent('PL');
+
+    await userEvent.click(toggle);
+    expect(useSessionStore.getState().language).toBe('EN');
+    expect(toggle).toHaveTextContent('EN');
   });
 
   it('updates the input value when typing', async () => {
@@ -78,6 +82,25 @@ describe('HomeScreen', () => {
 
     await waitFor(() => {
       expect(disambiguateMock).toHaveBeenCalledWith(typedTerm, 'EN');
+    });
+  });
+
+  it('searches with the toggled language', async () => {
+    renderScreen();
+    const input = getTermInput();
+    const toggle = getLanguageToggle();
+    disambiguateMock.mockResolvedValue({
+      term: 'szukać',
+      langPair: 'PL',
+      senses: [],
+    });
+
+    await userEvent.click(toggle);
+    await userEvent.type(input, 'zamek');
+    await userEvent.click(getSearchButton());
+
+    await waitFor(() => {
+      expect(disambiguateMock).toHaveBeenCalledWith('zamek', 'PL');
     });
   });
 
