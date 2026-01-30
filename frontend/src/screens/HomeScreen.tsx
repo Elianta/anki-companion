@@ -61,13 +61,11 @@ export function HomeScreen() {
           variant="secondary"
           onClick={toggleLanguage}
           className="absolute left-0 top-1/2 hidden h-16 w-16 -translate-y-1/2 rounded-full rounded-tr-none border-0 bg-slate-900 px-0 text-base font-semibold text-white shadow-md transition focus-visible:ring-0 hover:bg-slate-800 focus-visible:bg-slate-800 md:inline-flex md:h-20 md:w-20"
-          data-test-id="language-toggle"
           aria-label="Toggle source language"
         >
           {language}
         </Button>
         <Input
-          data-test-id="term-input"
           name="term"
           value={term}
           onChange={(event) => setTerm(event.target.value)}
@@ -81,7 +79,7 @@ export function HomeScreen() {
           variant="secondary"
           className="absolute right-0 top-1/2 h-16 w-16 -translate-y-1/2 rounded-full rounded-bl-none border-0 bg-slate-900 px-0 text-base font-semibold text-white shadow-md transition focus-visible:ring-0 hover:bg-slate-800 focus-visible:bg-slate-800 md:h-20 md:w-20"
           disabled={isSubmitting}
-          data-test-id="search-button"
+          aria-label="Search"
         >
           <SearchIcon className="size-6 md:size-7" />
         </Button>
