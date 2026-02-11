@@ -77,19 +77,27 @@ export function SensesScreen() {
             <CardHeader>
               <CardTitle>Possible senses for {term}:</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4" role="listbox" aria-label="Senses list">
               {senses.map((sense) => {
                 const isSelected = selectedSenseId === sense.id;
                 return (
                   <article
                     key={sense.id}
-                    data-selected={isSelected}
+                    role="option"
+                    aria-label={`sense-${sense.id}`}
+                    aria-selected={isSelected}
                     onClick={() => setSelectedSenseId(sense.id)}
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setSelectedSenseId(sense.id);
+                      }
+                    }}
                     className={cn(
                       'cursor-pointer rounded-xl border border-slate-200 bg-white p-4 transition hover:border-slate-300',
                       isSelected && 'border-primary/50 bg-primary/5 shadow-lg shadow-primary/10',
                     )}
-                    data-test-id={`sense-${sense.id}`}
                   >
                     <div className="flex flex-wrap items-center gap-3">
                       <h3 className="text-lg font-semibold text-slate-900">
