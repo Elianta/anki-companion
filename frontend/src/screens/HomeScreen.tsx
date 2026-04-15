@@ -70,6 +70,7 @@ export function HomeScreen() {
           value={term}
           onChange={(event) => setTerm(event.target.value)}
           placeholder="Enter a word or chunk (context in [brackets])"
+          autoCapitalize="none"
           maxLength={50}
           className="h-16 flex-1 rounded-none border-0 px-6 pr-20 text-base shadow-none focus-visible:border-transparent focus-visible:ring-0 md:h-20 md:pl-24 md:pr-24 md:text-lg"
         />
