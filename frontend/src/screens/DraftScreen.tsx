@@ -211,7 +211,8 @@ export function DraftScreen() {
                   checked={isAllSelected}
                   onCheckedChange={toggleAll}
                   className="h-9 w-9"
-                  data-test-id="select-all-drafts"
+                  aria-label="Select all ready drafts"
+                  // data-test-id="select-all-drafts"
                   disabled={!readyDrafts.length}
                 />
                 <p className="text-sm text-slate-800">Select all ready cards</p>
@@ -235,7 +236,8 @@ export function DraftScreen() {
                           disabled={!isReady || isExported}
                           onCheckedChange={() => draft.id && toggleDraftSelection(draft.id)}
                           className="h-9 w-9"
-                          data-test-id={`select-draft-${draft.id}`}
+                          aria-label={`Select draft ${draft.term}`}
+                          // data-test-id={`select-draft-${draft.id}`}
                         />
                         <div className="flex items-center gap-2">
                           <Select
@@ -246,7 +248,8 @@ export function DraftScreen() {
                             disabled={isExported || noteTypes.length === 1}
                           >
                             <SelectTrigger
-                              data-test-id={`note-type-${draft.id}`}
+                              aria-label={`Note type for ${draft.term}`}
+                              // data-test-id={`note-type-${draft.id}`}
                               size="default"
                               className="bg-white"
                             >
@@ -300,8 +303,8 @@ export function DraftScreen() {
                           size="icon"
                           className="ml-auto text-slate-600"
                           onClick={() => draft.id && handleRemove(draft.id)}
-                          data-test-id={`remove-draft-${draft.id}`}
-                          aria-label="Delete draft"
+                          // data-test-id={`remove-draft-${draft.id}`}
+                          aria-label={`Delete draft ${draft.term}`}
                         >
                           <Trash2Icon className="h-4 w-4" />
                         </Button>
@@ -334,7 +337,8 @@ export function DraftScreen() {
               type="button"
               onClick={handleExport}
               disabled={isExporting || selectedCount === 0}
-              data-test-id="export-button"
+              // data-test-id="export-button"
+              aria-label="Export selected drafts"
             >
               {isExporting ? 'Exporting…' : 'Export selected'}
             </Button>

@@ -1,27 +1,21 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DraftScreen } from './DraftScreen';
 import type { Sense } from '@/lib/llm';
-import { clearDrafts, saveDraftFromSense } from '@/services/draft-storage';
+import * as draftStorage from '@/services/draft-storage';
 import * as exportStorage from '@/services/export-storage';
 import type { DraftEntry } from '@/lib/db';
+import { toast } from 'sonner';
 
-const { navigateMock, toastErrorMock } = vi.hoisted(() => ({
-  navigateMock: vi.fn(),
-  toastErrorMock: vi.fn(),
-}));
-
+const navigateMock = vi.fn();
 vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => navigateMock,
 }));
 
-vi.mock('sonner', () => ({
-  toast: {
-    error: toastErrorMock,
-  },
-}));
+vi.mock('sonner');
+const toastErrorMock = vi.mocked(toast.error);
 
 const mockCardPayload = {
   fields: { Word: 'mock' },
@@ -37,6 +31,16 @@ vi.mock('@/services/card-generator', () => ({
   })),
 }));
 
+vi.mock('@/services/draft-storage', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/services/draft-storage')>();
+  return {
+    ...actual,
+    generateCardForDraft: vi.fn(actual.generateCardForDraft),
+    removeDraft: vi.fn(actual.removeDraft),
+    updateDraftNoteType: vi.fn(actual.updateDraftNoteType),
+  };
+});
+
 const buildSense = (overrides: Partial<Sense> = {}): Sense => ({
   id: overrides.id ?? 'sense-1',
   translationRU: overrides.translationRU ?? 'translation',
@@ -46,26 +50,41 @@ const buildSense = (overrides: Partial<Sense> = {}): Sense => ({
   examples: [],
 });
 
+let user: ReturnType<typeof userEvent.setup>;
+
 describe('DraftScreen', () => {
+  const updateDraftNoteTypeMock = vi.mocked(draftStorage.updateDraftNoteType);
+  const generateCardForDraftMock = vi.mocked(draftStorage.generateCardForDraft);
+  const removeDraftMock = vi.mocked(draftStorage.removeDraft);
+
   beforeEach(async () => {
-    await clearDrafts();
+    user = userEvent.setup();
+    await draftStorage.clearDrafts();
     await exportStorage.clearExportGroups();
     vi.clearAllMocks();
     navigateMock.mockReset();
-    navigateMock.mockResolvedValue(undefined);
     toastErrorMock.mockReset();
   });
 
   it('renders empty state when no drafts are present', async () => {
     render(<DraftScreen />);
 
-    await waitFor(() =>
-      expect(screen.getByText(/No drafts yet\. Open the "Senses" tab/i)).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.queryByText(/Loading drafts/i)).not.toBeInTheDocument());
+    expect(screen.getByText(/No drafts yet\. Open the "Senses" tab/i)).toBeInTheDocument();
+  });
+
+  it('shows an error message when drafts fail to load', async () => {
+    vi.spyOn(draftStorage, 'fetchDrafts').mockRejectedValueOnce(new Error('DB down'));
+
+    render(<DraftScreen />);
+
+    expect(
+      await screen.findByText(/Failed to load drafts\. Refresh the page\./i),
+    ).toBeInTheDocument();
   });
 
   it('shows stored drafts with key fields', async () => {
-    await saveDraftFromSense({
+    await draftStorage.saveDraftFromSense({
       sense: buildSense({
         id: '1',
         translationRU: 'first',
@@ -76,7 +95,7 @@ describe('DraftScreen', () => {
       language: 'EN',
     });
 
-    await saveDraftFromSense({
+    await draftStorage.saveDraftFromSense({
       sense: buildSense({
         id: '2',
         translationRU: 'drugi',
@@ -89,72 +108,112 @@ describe('DraftScreen', () => {
 
     render(<DraftScreen />);
 
-    expect(await screen.findByText('apple')).toBeInTheDocument();
-    expect(screen.getByText('first')).toBeInTheDocument();
-    expect(screen.queryByText('note-a')).not.toBeInTheDocument();
-    expect(screen.queryByText('noun')).not.toBeInTheDocument();
-    expect(screen.getByText('pisać')).toBeInTheDocument();
-    expect(screen.getByText('drugi')).toBeInTheDocument();
-    expect(screen.queryByText('second note')).not.toBeInTheDocument();
-    expect(screen.queryByText('verb')).not.toBeInTheDocument();
-    const readyIds = new Set(
-      screen
-        .getAllByTestId(/card-ready-/)
-        .map((button) => button.getAttribute('data-test-id'))
-        .filter(Boolean),
-    );
-    expect(readyIds.size).toBe(2);
+    const selectAll = await screen.findByLabelText('Select all ready drafts');
+    expect(selectAll).toBeEnabled();
+
+    const enItem = screen.getByTestId(/draft-item-1/);
+    expect(within(enItem).getByText('apple')).toBeInTheDocument();
+    expect(within(enItem).getByText('first')).toBeInTheDocument();
+    expect(within(enItem).queryByText('note-a')).not.toBeInTheDocument();
+    expect(within(enItem).queryByText('noun')).not.toBeInTheDocument();
+
+    const plItem = screen.getByTestId(/draft-item-2/);
+    expect(within(plItem).getByText('pisać')).toBeInTheDocument();
+    expect(within(plItem).getByText('drugi')).toBeInTheDocument();
+    expect(within(plItem).queryByText('second note')).not.toBeInTheDocument();
+    expect(within(plItem).queryByText('verb')).not.toBeInTheDocument();
+
+    expect(screen.getByLabelText('Select draft apple')).toBeInTheDocument();
+    expect(screen.getByLabelText('Select draft pisać')).toBeInTheDocument();
+  });
+
+  it('disables export button when no ready drafts are selected', async () => {
+    await draftStorage.saveDraftFromSense({
+      sense: buildSense({ id: 'en-1', translationRU: 'hello ru', partOfSpeech: 'noun' }),
+      term: 'hello',
+      language: 'EN',
+    });
+
+    render(<DraftScreen />);
+
+    const exportButton = await screen.findByLabelText('Export selected drafts');
+    expect(exportButton).toBeDisabled();
+  });
+
+  it('disables select all when there are no ready cards', async () => {
+    vi.spyOn(draftStorage, 'fetchDrafts').mockResolvedValueOnce([
+      {
+        id: 1,
+        term: 'apple',
+        language: 'EN',
+        noteType: 'EN: Default',
+        exported: false,
+        exportedAt: null,
+        card: null,
+        sense: buildSense({ id: '1', translationRU: 'first', partOfSpeech: 'noun' }),
+      },
+    ]);
+
+    render(<DraftScreen />);
+
+    const selectAll = await screen.findByLabelText('Select all ready drafts');
+    expect(selectAll).toBeDisabled();
   });
 
   it('allows changing note type and removing a draft', async () => {
-    const plDraftId = await saveDraftFromSense({
+    const plDraftId = await draftStorage.saveDraftFromSense({
       sense: buildSense({ id: 'pl-1', translationRU: 'drugi', partOfSpeech: 'verb' }),
       term: 'pisać',
       language: 'PL',
     });
 
-    const user = userEvent.setup();
     render(<DraftScreen />);
 
-    const noteTypeTrigger = await screen.findByTestId(`note-type-${plDraftId}`);
+    const noteTypeTrigger = await screen.findByLabelText('Note type for pisać');
     await user.click(noteTypeTrigger);
     const verbOption = await screen.findByText('PL: Verb');
     await user.click(verbOption);
 
-    await waitFor(() => expect(noteTypeTrigger).toHaveTextContent('PL: Verb'));
+    await waitFor(() => {
+      expect(noteTypeTrigger).toHaveTextContent('PL: Verb');
+      expect(updateDraftNoteTypeMock).toHaveBeenCalledWith(plDraftId, 'PL: Verb');
+      expect(generateCardForDraftMock).toHaveBeenCalledWith(plDraftId);
+    });
 
-    const removeButton = screen.getByTestId(`remove-draft-${plDraftId}`);
-    fireEvent.click(removeButton);
+    const removeButton = await screen.findByLabelText('Delete draft pisać');
+    await user.click(removeButton);
 
     await waitFor(() =>
       expect(screen.queryByTestId(`draft-item-${plDraftId}`)).not.toBeInTheDocument(),
     );
+
+    expect(removeDraftMock).toHaveBeenCalledWith(plDraftId);
   });
 
   it('exports selected drafts and removes them from list', async () => {
-    const enId = await saveDraftFromSense({
+    const enId = await draftStorage.saveDraftFromSense({
       sense: buildSense({ id: 'en-1', translationRU: 'hello ru', partOfSpeech: 'noun' }),
       term: 'hello',
       language: 'EN',
     });
-    const plId = await saveDraftFromSense({
+    const plId = await draftStorage.saveDraftFromSense({
       sense: buildSense({ id: 'pl-1', translationRU: 'cześć', partOfSpeech: 'verb' }),
       term: 'cześć',
       language: 'PL',
     });
+    const createExportGroupFromDraftsSpy = vi.spyOn(exportStorage, 'createExportGroupFromDrafts');
 
-    const user = userEvent.setup();
     render(<DraftScreen />);
 
-    const selectAll = await screen.findByTestId('select-all-drafts');
+    const selectAll = await screen.findByLabelText('Select all ready drafts');
     await user.click(selectAll);
 
-    const exportButton = screen.getByTestId('export-button');
+    const exportButton = screen.getByLabelText('Export selected drafts');
     await user.click(exportButton);
 
-    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith({ to: '/export' }));
-
     await waitFor(() => {
+      expect(createExportGroupFromDraftsSpy).toHaveBeenCalledWith([plId, enId]);
+      expect(navigateMock).toHaveBeenCalledWith({ to: '/export' });
       expect(screen.queryByTestId(`draft-item-${enId}`)).not.toBeInTheDocument();
       expect(screen.queryByTestId(`draft-item-${plId}`)).not.toBeInTheDocument();
     });
@@ -165,22 +224,23 @@ describe('DraftScreen', () => {
       new Error('Export failed'),
     );
 
-    const draftId = await saveDraftFromSense({
+    await draftStorage.saveDraftFromSense({
       sense: buildSense({ id: 'err-1', translationRU: 'oops', partOfSpeech: 'noun' }),
       term: 'oops',
       language: 'EN',
     });
 
-    const user = userEvent.setup();
     render(<DraftScreen />);
 
-    const draftCheckbox = await screen.findByTestId(`select-draft-${draftId}`);
+    const draftCheckbox = await screen.findByLabelText('Select draft oops');
     await user.click(draftCheckbox);
 
-    const exportButton = screen.getByTestId('export-button');
+    const exportButton = screen.getByLabelText('Export selected drafts');
     await user.click(exportButton);
 
-    await waitFor(() => expect(toastErrorMock).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(toastErrorMock).toHaveBeenCalledWith(expect.stringMatching(/Export failed/i)),
+    );
     expect(navigateMock).not.toHaveBeenCalled();
   });
 });
