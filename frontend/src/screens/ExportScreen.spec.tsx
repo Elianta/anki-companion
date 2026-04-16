@@ -33,6 +33,21 @@ const buildSense = (overrides: Partial<Sense> = {}): Sense => ({
   examples: [],
 });
 
+const seedDraft = async ({
+  term,
+  language,
+  sense,
+}: {
+  term: string;
+  language: 'EN' | 'PL';
+  sense?: Partial<Sense>;
+}) =>
+  saveDraftFromSense({
+    sense: buildSense(sense),
+    term,
+    language,
+  });
+
 describe('ExportScreen', () => {
   beforeEach(async () => {
     await clearDrafts();
@@ -68,15 +83,15 @@ describe('ExportScreen', () => {
   });
 
   it('shows export groups with word list and download buttons', async () => {
-    const enDraftId = await saveDraftFromSense({
-      sense: buildSense({ id: 'en-1', translationRU: 'привет' }),
+    const enDraftId = await seedDraft({
       term: 'hello',
       language: 'EN',
+      sense: { id: 'en-1', translationRU: 'привет' },
     });
-    const plDraftId = await saveDraftFromSense({
-      sense: buildSense({ id: 'pl-1', translationRU: 'cześć', partOfSpeech: 'noun' }),
+    const plDraftId = await seedDraft({
       term: 'cześć',
       language: 'PL',
+      sense: { id: 'pl-1', translationRU: 'cześć', partOfSpeech: 'noun' },
     });
 
     await createExportGroupFromDrafts([enDraftId!, plDraftId!]);
@@ -86,12 +101,11 @@ describe('ExportScreen', () => {
     const trigger = await screen.findByRole('button', { name: /Words \(2\)/i });
     await userEvent.click(trigger);
 
-    const group = await screen.findByTestId(/export-group-/);
-    expect(group).toBeInTheDocument();
+    expect(await screen.findByText(/^Exported /i)).toBeInTheDocument();
     expect(await screen.findByText('hello')).toBeInTheDocument();
     expect(screen.getByText('cześć')).toBeInTheDocument();
 
-    const files = screen.getAllByRole('button', { name: /CSV/ });
+    const files = screen.getAllByRole('button', { name: /download .* csv for export/i });
     expect(files.length).toBeGreaterThanOrEqual(2);
   });
 });

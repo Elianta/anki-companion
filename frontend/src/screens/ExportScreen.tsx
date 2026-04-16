@@ -82,11 +82,7 @@ export function ExportScreen() {
                 : group.draftIds.map((id) => draftWords[id]).filter(Boolean);
 
               return (
-                <div
-                  key={group.id}
-                  data-test-id={`export-group-${group.id}`}
-                  className="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-xs"
-                >
+                <div key={group.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-xs">
                   <div className="flex flex-wrap items-center gap-3">
                     <p className="text-sm font-semibold text-slate-900">
                       Exported {formatTimestamp(group.createdAt)}
@@ -118,7 +114,7 @@ export function ExportScreen() {
                         variant="outline"
                         className="flex items-center gap-2"
                         onClick={() => handleDownload(file)}
-                        data-test-id={`download-${group.id}-${file.noteType}`}
+                        aria-label={`Download ${file.noteType} CSV for export ${formatTimestamp(group.createdAt)}`}
                       >
                         <DownloadIcon className="h-4 w-4" />
                         {file.noteType} CSV
