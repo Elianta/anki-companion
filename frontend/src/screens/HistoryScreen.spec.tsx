@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { HistoryScreen } from './HistoryScreen';
 import type { Sense } from '@/lib/llm';
-import { clearDrafts, returnDraftToQueue, saveDraftFromSense } from '@/services/draft-storage';
+import * as draftStorage from '@/services/draft-storage';
 import { db, type DraftEntry } from '@/lib/db';
 
 vi.mock('@/services/card-generator', () => ({
@@ -34,83 +34,135 @@ const buildSense = (overrides: Partial<Sense> = {}): Sense => ({
   examples: [],
 });
 
+const renderScreen = () => render(<HistoryScreen />);
+
+const createExportedDraft = async ({
+  sense,
+  term,
+  language,
+}: {
+  sense: Sense;
+  term: string;
+  language: 'EN' | 'PL';
+}) => {
+  const draftId = await draftStorage.saveDraftFromSense({ sense, term, language });
+  await db.drafts.update(draftId, { exported: true });
+  return draftId;
+};
+
+let user: ReturnType<typeof userEvent.setup>;
+let consoleWarnMock: ReturnType<typeof vi.spyOn>;
+
 describe('HistoryScreen', () => {
-  const returnDraftMock = vi.mocked(returnDraftToQueue);
-  const markExported = async (...ids: number[]) => {
-    await Promise.all(ids.map((id) => db.drafts.update(id, { exported: true })));
-  };
+  const returnDraftMock = vi.mocked(draftStorage.returnDraftToQueue);
 
   beforeEach(async () => {
-    await clearDrafts();
-    returnDraftMock.mockClear();
+    user = userEvent.setup();
+    consoleWarnMock = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await draftStorage.clearDrafts();
+    vi.clearAllMocks();
+    returnDraftMock.mockReset();
+    consoleWarnMock.mockClear();
   });
 
-  it('renders empty state', async () => {
-    render(<HistoryScreen />);
-    await waitFor(() =>
-      expect(screen.getByText(/No exported drafts yet/i)).toBeInTheDocument(),
-    );
+  it('renders empty state when there are no exported drafts', async () => {
+    renderScreen();
+
+    await waitFor(() => expect(screen.queryByText(/Loading history/i)).not.toBeInTheDocument());
+
+    expect(screen.getByText('History')).toBeInTheDocument();
+    expect(screen.getByText('Previously exported drafts.')).toBeInTheDocument();
+    expect(screen.getByText(/No exported drafts yet/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/select exported draft/i)).not.toBeInTheDocument();
   });
 
-  it('lists exported drafts with term and translation', async () => {
-    const firstId = await saveDraftFromSense({
+  it('shows exported drafts with note type, term, translation, and bulk controls', async () => {
+    await createExportedDraft({
       sense: buildSense({ id: 'first', translationRU: 'hello ru' }),
       term: 'hello',
       language: 'EN',
     });
-    const secondId = await saveDraftFromSense({
+    await createExportedDraft({
       sense: buildSense({ id: 'second', translationRU: 'cześć' }),
       term: 'czesc',
       language: 'PL',
     });
 
-    await markExported(firstId!, secondId!);
+    renderScreen();
 
-    render(<HistoryScreen />);
+    expect(await screen.findByText('Select all (2 items)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Select all exported drafts')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /delete selected/i })).toBeDisabled();
 
-    expect(await screen.findByTestId(`history-item-${firstId}`)).toBeInTheDocument();
-    expect(screen.getByText('hello')).toBeInTheDocument();
+    expect(await screen.findByText('hello')).toBeInTheDocument();
     expect(screen.getByText('hello ru')).toBeInTheDocument();
+    expect(screen.getByLabelText('Note type for hello')).toHaveTextContent('EN: Default');
 
     expect(screen.getByText('czesc')).toBeInTheDocument();
     expect(screen.getByText('cześć')).toBeInTheDocument();
-
-    expect(screen.getAllByTestId(/select-history-/)).toHaveLength(2);
+    expect(screen.getByLabelText('Note type for czesc')).toHaveTextContent('PL: Default');
   });
 
-  it('restores a draft', async () => {
-    const draftId = await saveDraftFromSense({
+  it('restores a draft and removes it from history', async () => {
+    const draftId = await createExportedDraft({
       sense: buildSense({ id: 'restore', translationRU: 'back' }),
       term: 'return me',
       language: 'EN',
     });
-    await markExported(draftId!);
 
-    render(<HistoryScreen />);
-    const restoreButton = await screen.findByTestId(`restore-draft-${draftId}`);
-    await userEvent.click(restoreButton);
+    renderScreen();
 
-    await waitFor(() => expect(returnDraftMock).toHaveBeenCalledWith(draftId));
+    await user.click(await screen.findByLabelText('Restore draft return me'));
+
+    await waitFor(() => {
+      expect(returnDraftMock).toHaveBeenCalledWith(draftId);
+      expect(screen.queryByLabelText('Select exported draft return me')).not.toBeInTheDocument();
+    });
+
+    const restoredDraft = await db.drafts.get(draftId);
+    expect(restoredDraft?.exported).toBe(false);
   });
 
-  it('selects and deletes history items', async () => {
-    const draftId = await saveDraftFromSense({
-      sense: buildSense({ id: 'delete', translationRU: 'bye' }),
+  it('selects all exported drafts and deletes them', async () => {
+    const firstId = await createExportedDraft({
+      sense: buildSense({ id: 'delete-1', translationRU: 'bye' }),
       term: 'delete me',
       language: 'EN',
     });
-    await markExported(draftId!);
+    const secondId = await createExportedDraft({
+      sense: buildSense({ id: 'delete-2', translationRU: 'pa' }),
+      term: 'usuń mnie',
+      language: 'PL',
+    });
 
-    render(<HistoryScreen />);
+    renderScreen();
 
-    const checkbox = await screen.findByTestId(`select-history-${draftId}`);
-    await userEvent.click(checkbox);
+    const selectAll = await screen.findByLabelText('Select all exported drafts');
+    const deleteButton = screen.getByRole('button', { name: /delete selected/i });
 
-    const deleteButton = screen.getByTestId('delete-selected-history');
-    await userEvent.click(deleteButton);
+    expect(deleteButton).toBeDisabled();
 
-    await waitFor(() =>
-      expect(screen.queryByTestId(`history-item-${draftId}`)).not.toBeInTheDocument(),
-    );
+    await user.click(selectAll);
+
+    expect(deleteButton).toBeEnabled();
+
+    await user.click(deleteButton);
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText('Select exported draft delete me')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Select exported draft usuń mnie')).not.toBeInTheDocument();
+    });
+
+    expect(await db.drafts.get(firstId)).toBeUndefined();
+    expect(await db.drafts.get(secondId)).toBeUndefined();
+    expect(screen.getByText(/No exported drafts yet/i)).toBeInTheDocument();
+  });
+
+  it('shows an error message when history loading fails', async () => {
+    vi.spyOn(draftStorage, 'fetchDrafts').mockRejectedValueOnce(new Error('DB down'));
+
+    renderScreen();
+
+    expect(await screen.findByText('Failed to load history.')).toBeInTheDocument();
   });
 });

@@ -113,7 +113,7 @@ export function HistoryScreen() {
                   checked={isAllSelected}
                   onCheckedChange={toggleAll}
                   className="h-9 w-9"
-                  data-test-id="select-all-history"
+                  aria-label="Select all exported drafts"
                   disabled={!drafts.length}
                 />
                 <p className="text-sm text-slate-800">Select all ({drafts.length} items)</p>
@@ -124,7 +124,6 @@ export function HistoryScreen() {
                   onClick={handleDeleteSelected}
                   disabled={!selectedIds.size || isDeleting}
                   className="ml-auto"
-                  data-test-id="delete-selected-history"
                 >
                   {isDeleting ? 'Deleting…' : 'Delete selected'}
                 </Button>
@@ -134,21 +133,17 @@ export function HistoryScreen() {
                 {drafts.map((draft) => {
                   const isSelected = !!draft.id && selectedIds.has(draft.id);
                   return (
-                    <div
-                      key={draft.id}
-                      data-test-id={`history-item-${draft.id}`}
-                      className="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-xs"
-                    >
+                    <div key={draft.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-xs">
                       <div className="flex flex-wrap items-start gap-3">
                         <Checkbox
                           checked={isSelected}
                           onCheckedChange={() => draft.id && toggleDraftSelection(draft.id)}
                           className="h-9 w-9"
-                          data-test-id={`select-history-${draft.id}`}
+                          aria-label={`Select exported draft ${draft.term}`}
                         />
                         <div className="flex items-center gap-2">
                           <Select value={draft.noteType} disabled>
-                            <SelectTrigger data-test-id={`note-type-${draft.id}`} size="default">
+                            <SelectTrigger aria-label={`Note type for ${draft.term}`} size="default">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -161,9 +156,8 @@ export function HistoryScreen() {
                           variant="outline"
                           size="icon"
                           className="ml-auto text-slate-700"
-                          aria-label="Restore draft"
+                          aria-label={`Restore draft ${draft.term}`}
                           onClick={() => draft.id && handleReturnToDrafts(draft.id)}
-                          data-test-id={`restore-draft-${draft.id}`}
                         >
                           <RotateCcwIcon className="h-4 w-4" />
                         </Button>
