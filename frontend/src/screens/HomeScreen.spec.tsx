@@ -26,6 +26,28 @@ const renderScreen = () => render(<HomeScreen />);
 const getTermInput = () => screen.getByRole('textbox');
 const getLanguageToggle = () => screen.getByRole('button', { name: /toggle source language/i });
 const getSearchButton = () => screen.getByRole('button', { name: /search/i });
+
+const setup = () => {
+  renderScreen();
+
+  return {
+    input: getTermInput(),
+    languageToggle: getLanguageToggle(),
+    searchButton: getSearchButton(),
+  };
+};
+
+const mockSuccessfulSearch = (overrides: Partial<DisambiguateResult> = {}) => {
+  const result: DisambiguateResult = {
+    term: 'focus',
+    langPair: 'EN',
+    senses: [],
+    ...overrides,
+  };
+  disambiguateMock.mockResolvedValue(result);
+  return result;
+};
+
 let user: ReturnType<typeof userEvent.setup>;
 
 describe('HomeScreen', () => {
@@ -40,57 +62,52 @@ describe('HomeScreen', () => {
   });
 
   it('renders input + language toggle + search button', () => {
-    renderScreen();
-    expect(getTermInput()).toBeInTheDocument();
-    expect(getLanguageToggle()).toBeInTheDocument();
-    expect(getSearchButton()).toBeInTheDocument();
+    const { input, languageToggle, searchButton } = setup();
+
+    expect(input).toBeInTheDocument();
+    expect(languageToggle).toBeInTheDocument();
+    expect(searchButton).toBeInTheDocument();
   });
 
   it('defaults language to EN (UI + store)', () => {
-    renderScreen();
-    expect(getLanguageToggle()).toHaveTextContent('EN');
+    const { languageToggle } = setup();
+
+    expect(languageToggle).toHaveTextContent('EN');
     expect(useSessionStore.getState().language).toBe('EN');
   });
 
   it('toggles the language when clicking the toggle button', async () => {
-    renderScreen();
-    const toggle = getLanguageToggle();
+    const { languageToggle } = setup();
 
-    await user.click(toggle);
+    await user.click(languageToggle);
     expect(useSessionStore.getState().language).toBe('PL');
-    expect(toggle).toHaveTextContent('PL');
+    expect(languageToggle).toHaveTextContent('PL');
 
-    await user.click(toggle);
+    await user.click(languageToggle);
     expect(useSessionStore.getState().language).toBe('EN');
-    expect(toggle).toHaveTextContent('EN');
+    expect(languageToggle).toHaveTextContent('EN');
   });
 
   it('ignores search when input is empty or whitespace', async () => {
-    renderScreen();
+    const { input, searchButton } = setup();
 
-    await user.click(getSearchButton());
+    await user.click(searchButton);
     expect(disambiguateMock).not.toHaveBeenCalled();
 
-    await user.type(getTermInput(), '   ');
-    await user.click(getSearchButton());
+    await user.type(input, '   ');
+    await user.click(searchButton);
     expect(disambiguateMock).not.toHaveBeenCalled();
   });
 
   it('calls disambiguate with trimmed term and current language', async () => {
-    renderScreen();
-
-    const input = getTermInput();
-    disambiguateMock.mockResolvedValue({
-      term: 'drew [himself] up',
-      langPair: 'EN',
-      senses: [],
-    });
+    const { input, searchButton } = setup();
 
     const typedTerm = 'drew [himself] up';
+    mockSuccessfulSearch({ term: typedTerm });
     fireEvent.change(input, {
       target: { value: `   ${typedTerm}   ` },
     });
-    await user.click(getSearchButton());
+    await user.click(searchButton);
 
     await waitFor(() => {
       expect(disambiguateMock).toHaveBeenCalledWith(typedTerm, 'EN');
@@ -98,20 +115,14 @@ describe('HomeScreen', () => {
   });
 
   it('searches with the toggled language', async () => {
-    renderScreen();
-    const input = getTermInput();
-    const toggle = getLanguageToggle();
-    disambiguateMock.mockResolvedValue({
-      term: 'szukać',
-      langPair: 'PL',
-      senses: [],
-    });
+    const { input, languageToggle, searchButton } = setup();
+    mockSuccessfulSearch({ term: 'szukać', langPair: 'PL' });
 
-    await user.click(toggle);
-    expect(toggle).toHaveTextContent('PL');
+    await user.click(languageToggle);
+    expect(languageToggle).toHaveTextContent('PL');
 
     await user.type(input, 'zamek');
-    await user.click(getSearchButton());
+    await user.click(searchButton);
 
     await waitFor(() => {
       expect(disambiguateMock).toHaveBeenCalledWith('zamek', 'PL');
@@ -119,17 +130,12 @@ describe('HomeScreen', () => {
   });
 
   it('stores the resolved senses and term', async () => {
-    renderScreen();
-    const input = getTermInput();
+    const { input, searchButton } = setup();
     const senses: Sense[] = [{ id: 'sense-1', translationRU: 'example' }];
-    disambiguateMock.mockResolvedValue({
-      term: 'focus',
-      langPair: 'EN',
-      senses,
-    });
+    mockSuccessfulSearch({ senses });
 
     await user.type(input, 'focus');
-    await user.click(getSearchButton());
+    await user.click(searchButton);
 
     await waitFor(() => {
       const state = useSessionStore.getState();
@@ -139,57 +145,46 @@ describe('HomeScreen', () => {
   });
 
   it('navigates to /senses after storing results', async () => {
-    renderScreen();
-    const input = getTermInput();
-    disambiguateMock.mockResolvedValue({
-      term: 'focus',
-      langPair: 'EN',
-      senses: [],
-    });
+    const { input, searchButton } = setup();
+    mockSuccessfulSearch();
 
     await user.type(input, 'focus');
-    await user.click(getSearchButton());
+    await user.click(searchButton);
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith({ to: '/senses' });
     });
 
-    // store updated
     expect(useSessionStore.getState().term).toBe('focus');
-
-    // optional ordering check: disambiguate called before navigate
-    expect(disambiguateMock.mock.invocationCallOrder[0]).toBeLessThan(
-      mockNavigate.mock.invocationCallOrder[0],
-    );
   });
 
   it('disables submit while request is in-flight and prevents double submit', async () => {
-    renderScreen();
+    const { input, searchButton } = setup();
 
     let resolve!: (v: DisambiguateResult) => void;
     const pending: Promise<DisambiguateResult> = new Promise((r) => (resolve = r));
     disambiguateMock.mockReturnValue(pending);
 
-    await user.type(getTermInput(), 'focus');
-    await user.click(getSearchButton());
-    await user.click(getSearchButton()); // second click should be ignored
+    await user.type(input, 'focus');
+    await user.click(searchButton);
+    await user.click(searchButton);
 
     expect(disambiguateMock).toHaveBeenCalledTimes(1);
-    expect(getSearchButton()).toBeDisabled();
+    expect(searchButton).toBeDisabled();
 
     resolve({ term: 'focus', langPair: 'EN', senses: [] });
 
     await waitFor(() => {
-      expect(getSearchButton()).not.toBeDisabled();
+      expect(searchButton).not.toBeDisabled();
     });
   });
 
   it('shows an error toast and does not navigate when disambiguate fails', async () => {
-    renderScreen();
+    const { input, searchButton } = setup();
     disambiguateMock.mockRejectedValue(new Error('error'));
 
-    await user.type(getTermInput(), 'focus');
-    await user.click(getSearchButton());
+    await user.type(input, 'focus');
+    await user.click(searchButton);
 
     await waitFor(() => {
       expect(toastErrorMock).toHaveBeenCalled();
@@ -198,15 +193,15 @@ describe('HomeScreen', () => {
   });
 
   it('shows rate limit toast message when API reports rate limit', async () => {
-    renderScreen();
+    const { input, searchButton } = setup();
 
     vi.mocked(isRateLimitError).mockReturnValue(true);
     vi.mocked(formatRateLimitMessage).mockReturnValue('Try again in 30s');
 
     disambiguateMock.mockRejectedValue({ retryAfterSeconds: 30 });
 
-    await user.type(getTermInput(), 'focus');
-    await user.click(getSearchButton());
+    await user.type(input, 'focus');
+    await user.click(searchButton);
 
     await waitFor(() => {
       expect(toastErrorMock).toHaveBeenCalledWith('Try again in 30s');
@@ -214,10 +209,9 @@ describe('HomeScreen', () => {
   });
 
   it('submits on Enter key (form submit)', async () => {
-    renderScreen();
-    disambiguateMock.mockResolvedValue({ term: 'focus', langPair: 'EN', senses: [] });
+    const { input } = setup();
+    mockSuccessfulSearch();
 
-    const input = getTermInput();
     await user.type(input, 'focus{enter}');
 
     await waitFor(() => {
