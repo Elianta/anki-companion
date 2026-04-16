@@ -21,20 +21,60 @@ vi.mock('sonner');
 const toastErrorMock = vi.mocked(toast.error);
 const toastSuccessMock = vi.mocked(toast.success);
 
-const buildSense = (
-  id: string,
-  translationRU: string,
-  partOfSpeech?: string,
-  usageLevel?: 'low' | 'medium' | 'high',
-  notes?: string,
-): Sense => ({
-  id,
-  translationRU,
-  partOfSpeech,
-  usageLevel,
-  notes,
-  examples: ['ex 1', 'ex 2'],
+const buildSense = (overrides: Partial<Sense> & Pick<Sense, 'id' | 'translationRU'>): Sense => ({
+  id: overrides.id,
+  translationRU: overrides.translationRU,
+  partOfSpeech: overrides.partOfSpeech,
+  usageLevel: overrides.usageLevel,
+  notes: overrides.notes,
+  examples: overrides.examples ?? ['ex 1', 'ex 2'],
 });
+
+const defaultSenses = [
+  buildSense({
+    id: 'a',
+    translationRU: 'first translation',
+    partOfSpeech: 'noun',
+    usageLevel: 'high',
+  }),
+  buildSense({
+    id: 'b',
+    translationRU: 'second translation',
+    usageLevel: 'medium',
+    notes: 'note-b',
+  }),
+];
+
+const renderScreen = ({
+  senses = defaultSenses,
+  term = 'test',
+  language = 'EN',
+}: {
+  senses?: Sense[];
+  term?: string;
+  language?: 'EN' | 'PL';
+} = {}) => {
+  useSessionStore.setState({
+    ...createSessionSnapshot(),
+    senses,
+    term,
+    language,
+  });
+
+  render(<SensesScreen />);
+
+  return {
+    saveButton: () => screen.getByRole('button', { name: /save to draft/i }),
+    senseOption: (id: string) => screen.getByLabelText(`sense-${id}`),
+  };
+};
+
+const expectSelectedSense = (id: string, isSelected: boolean) => {
+  expect(screen.getByLabelText(`sense-${id}`)).toHaveAttribute(
+    'aria-selected',
+    isSelected ? 'true' : 'false',
+  );
+};
 
 let user: ReturnType<typeof userEvent.setup>;
 
@@ -48,29 +88,14 @@ describe('SensesScreen', () => {
     saveDraftMock.mockResolvedValue(1);
     toastErrorMock.mockReset();
     toastSuccessMock.mockReset();
-
-    useSessionStore.setState({
-      ...createSessionSnapshot(),
-      senses: [
-        buildSense('a', 'first translation', 'noun', 'high', undefined),
-        buildSense('b', 'second translation', undefined, 'medium', 'note-b'),
-      ],
-      term: 'test',
-    });
   });
 
   it('renders empty state when there are no senses', () => {
-    useSessionStore.setState({
-      ...createSessionSnapshot(),
-      senses: [],
-      term: 'test',
-    });
-
-    render(<SensesScreen />);
+    renderScreen({ senses: [] });
 
     expect(screen.getByText('No senses found for test')).toBeInTheDocument();
     expect(screen.getByText(/Try adjusting your query/i)).toBeInTheDocument();
-    expect(screen.getByText('Back to search')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /back to search/i })).toBeInTheDocument();
 
     expect(screen.queryByText(/Possible senses for/i)).not.toBeInTheDocument();
     expect(screen.queryByRole('listbox', { name: /senses list/i })).not.toBeInTheDocument();
@@ -78,7 +103,7 @@ describe('SensesScreen', () => {
   });
 
   it('renders senses from session store', () => {
-    render(<SensesScreen />);
+    renderScreen();
 
     expect(screen.getByRole('listbox', { name: /senses list/i })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'sense-a' })).toBeInTheDocument();
@@ -91,24 +116,22 @@ describe('SensesScreen', () => {
   });
 
   it('marks a sense as selected on click', async () => {
-    render(<SensesScreen />);
-    const first = screen.getByLabelText('sense-a');
-    const second = screen.getByLabelText('sense-b');
+    const { senseOption } = renderScreen();
 
-    // initial selection defaults to first
-    expect(first).toHaveAttribute('aria-selected', 'true');
-    expect(second).toHaveAttribute('aria-selected', 'false');
+    expectSelectedSense('a', true);
+    expectSelectedSense('b', false);
 
-    await user.click(second);
-    expect(first).toHaveAttribute('aria-selected', 'false');
-    expect(second).toHaveAttribute('aria-selected', 'true');
+    await user.click(senseOption('b'));
+
+    expectSelectedSense('a', false);
+    expectSelectedSense('b', true);
   });
 
   it('saves selected sense to draft and navigates', async () => {
-    render(<SensesScreen />);
+    const { saveButton, senseOption } = renderScreen();
 
-    await user.click(screen.getByLabelText('sense-b'));
-    await user.click(screen.getByRole('button', { name: /save to draft/i }));
+    await user.click(senseOption('b'));
+    await user.click(saveButton());
 
     await waitFor(() => {
       expect(saveDraftMock).toHaveBeenCalledWith(
@@ -129,10 +152,10 @@ describe('SensesScreen', () => {
   it('shows error and does not navigate when save fails', async () => {
     saveDraftMock.mockRejectedValueOnce(new Error('boom'));
 
-    render(<SensesScreen />);
+    const { saveButton, senseOption } = renderScreen();
 
-    await user.click(screen.getByLabelText('sense-b'));
-    await user.click(screen.getByRole('button', { name: /save to draft/i }));
+    await user.click(senseOption('b'));
+    await user.click(saveButton());
 
     await waitFor(() => {
       expect(toastErrorMock).toHaveBeenCalled();
@@ -143,24 +166,23 @@ describe('SensesScreen', () => {
   });
 
   it('allows selecting a sense with keyboard (Enter/Space)', async () => {
-    render(<SensesScreen />);
+    const { senseOption } = renderScreen();
+    const first = senseOption('a');
+    const second = senseOption('b');
 
-    const first = screen.getByLabelText('sense-a');
-    const second = screen.getByLabelText('sense-b');
-
-    expect(first).toHaveAttribute('aria-selected', 'true');
-    expect(second).toHaveAttribute('aria-selected', 'false');
+    expectSelectedSense('a', true);
+    expectSelectedSense('b', false);
 
     second.focus();
     await user.keyboard('{Enter}');
 
-    expect(first).toHaveAttribute('aria-selected', 'false');
-    expect(second).toHaveAttribute('aria-selected', 'true');
+    expectSelectedSense('a', false);
+    expectSelectedSense('b', true);
 
     first.focus();
     await user.keyboard(' ');
 
-    expect(first).toHaveAttribute('aria-selected', 'true');
-    expect(second).toHaveAttribute('aria-selected', 'false');
+    expectSelectedSense('a', true);
+    expectSelectedSense('b', false);
   });
 });
