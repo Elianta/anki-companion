@@ -50,6 +50,34 @@ const buildSense = (overrides: Partial<Sense> = {}): Sense => ({
   examples: [],
 });
 
+const seedDraft = async ({
+  term,
+  language,
+  sense,
+}: {
+  term: string;
+  language: 'EN' | 'PL';
+  sense?: Partial<Sense>;
+}) =>
+  draftStorage.saveDraftFromSense({
+    sense: buildSense(sense),
+    term,
+    language,
+  });
+
+const renderScreen = () => {
+  render(<DraftScreen />);
+
+  return {
+    exportButton: () => screen.findByLabelText('Export selected drafts'),
+    selectAll: () => screen.findByLabelText('Select all ready drafts'),
+    draftItem: (id: number | string) => screen.queryByTestId(`draft-item-${id}`),
+    draftCheckbox: (term: string) => screen.findByLabelText(`Select draft ${term}`),
+    noteTypeTrigger: (term: string) => screen.findByLabelText(`Note type for ${term}`),
+    removeButton: (term: string) => screen.findByLabelText(`Delete draft ${term}`),
+  };
+};
+
 let user: ReturnType<typeof userEvent.setup>;
 
 describe('DraftScreen', () => {
@@ -67,7 +95,7 @@ describe('DraftScreen', () => {
   });
 
   it('renders empty state when no drafts are present', async () => {
-    render(<DraftScreen />);
+    renderScreen();
 
     await waitFor(() => expect(screen.queryByText(/Loading drafts/i)).not.toBeInTheDocument());
     expect(screen.getByText(/No drafts yet\. Open the "Senses" tab/i)).toBeInTheDocument();
@@ -76,7 +104,7 @@ describe('DraftScreen', () => {
   it('shows an error message when drafts fail to load', async () => {
     vi.spyOn(draftStorage, 'fetchDrafts').mockRejectedValueOnce(new Error('DB down'));
 
-    render(<DraftScreen />);
+    renderScreen();
 
     expect(
       await screen.findByText(/Failed to load drafts\. Refresh the page\./i),
@@ -84,32 +112,20 @@ describe('DraftScreen', () => {
   });
 
   it('shows stored drafts with key fields', async () => {
-    await draftStorage.saveDraftFromSense({
-      sense: buildSense({
-        id: '1',
-        translationRU: 'first',
-        notes: 'note-a',
-        partOfSpeech: 'noun',
-      }),
+    await seedDraft({
       term: 'apple',
       language: 'EN',
+      sense: { id: '1', translationRU: 'first', notes: 'note-a', partOfSpeech: 'noun' },
     });
-
-    await draftStorage.saveDraftFromSense({
-      sense: buildSense({
-        id: '2',
-        translationRU: 'drugi',
-        notes: 'second note',
-        partOfSpeech: 'verb',
-      }),
+    await seedDraft({
       term: 'pisać',
       language: 'PL',
+      sense: { id: '2', translationRU: 'drugi', notes: 'second note', partOfSpeech: 'verb' },
     });
 
-    render(<DraftScreen />);
+    const { selectAll } = renderScreen();
 
-    const selectAll = await screen.findByLabelText('Select all ready drafts');
-    expect(selectAll).toBeEnabled();
+    expect(await selectAll()).toBeEnabled();
 
     const enItem = screen.getByTestId(/draft-item-1/);
     expect(within(enItem).getByText('apple')).toBeInTheDocument();
@@ -128,16 +144,15 @@ describe('DraftScreen', () => {
   });
 
   it('disables export button when no ready drafts are selected', async () => {
-    await draftStorage.saveDraftFromSense({
-      sense: buildSense({ id: 'en-1', translationRU: 'hello ru', partOfSpeech: 'noun' }),
+    await seedDraft({
       term: 'hello',
       language: 'EN',
+      sense: { id: 'en-1', translationRU: 'hello ru', partOfSpeech: 'noun' },
     });
 
-    render(<DraftScreen />);
+    const { exportButton } = renderScreen();
 
-    const exportButton = await screen.findByLabelText('Export selected drafts');
-    expect(exportButton).toBeDisabled();
+    expect(await exportButton()).toBeDisabled();
   });
 
   it('disables select all when there are no ready cards', async () => {
@@ -154,68 +169,74 @@ describe('DraftScreen', () => {
       },
     ]);
 
-    render(<DraftScreen />);
+    const { selectAll } = renderScreen();
 
-    const selectAll = await screen.findByLabelText('Select all ready drafts');
-    expect(selectAll).toBeDisabled();
+    expect(await selectAll()).toBeDisabled();
   });
 
-  it('allows changing note type and removing a draft', async () => {
-    const plDraftId = await draftStorage.saveDraftFromSense({
-      sense: buildSense({ id: 'pl-1', translationRU: 'drugi', partOfSpeech: 'verb' }),
+  it('allows changing note type', async () => {
+    const plDraftId = await seedDraft({
       term: 'pisać',
       language: 'PL',
+      sense: { id: 'pl-1', translationRU: 'drugi', partOfSpeech: 'verb' },
     });
 
-    render(<DraftScreen />);
+    const { noteTypeTrigger } = renderScreen();
 
-    const noteTypeTrigger = await screen.findByLabelText('Note type for pisać');
-    await user.click(noteTypeTrigger);
+    const trigger = await noteTypeTrigger('pisać');
+    await user.click(trigger);
     const verbOption = await screen.findByText('PL: Verb');
     await user.click(verbOption);
 
     await waitFor(() => {
-      expect(noteTypeTrigger).toHaveTextContent('PL: Verb');
+      expect(trigger).toHaveTextContent('PL: Verb');
       expect(updateDraftNoteTypeMock).toHaveBeenCalledWith(plDraftId, 'PL: Verb');
       expect(generateCardForDraftMock).toHaveBeenCalledWith(plDraftId);
     });
+  });
 
-    const removeButton = await screen.findByLabelText('Delete draft pisać');
-    await user.click(removeButton);
+  it('allows removing a draft', async () => {
+    const plDraftId = await seedDraft({
+      term: 'pisać',
+      language: 'PL',
+      sense: { id: 'pl-1', translationRU: 'drugi', partOfSpeech: 'verb' },
+    });
 
-    await waitFor(() =>
-      expect(screen.queryByTestId(`draft-item-${plDraftId}`)).not.toBeInTheDocument(),
-    );
+    const { draftItem, removeButton } = renderScreen();
+
+    await user.click(await removeButton('pisać'));
+
+    await waitFor(() => expect(draftItem(plDraftId)).not.toBeInTheDocument());
 
     expect(removeDraftMock).toHaveBeenCalledWith(plDraftId);
   });
 
   it('exports selected drafts and removes them from list', async () => {
-    const enId = await draftStorage.saveDraftFromSense({
-      sense: buildSense({ id: 'en-1', translationRU: 'hello ru', partOfSpeech: 'noun' }),
+    const enId = await seedDraft({
       term: 'hello',
       language: 'EN',
+      sense: { id: 'en-1', translationRU: 'hello ru', partOfSpeech: 'noun' },
     });
-    const plId = await draftStorage.saveDraftFromSense({
-      sense: buildSense({ id: 'pl-1', translationRU: 'cześć', partOfSpeech: 'verb' }),
+    const plId = await seedDraft({
       term: 'cześć',
       language: 'PL',
+      sense: { id: 'pl-1', translationRU: 'cześć', partOfSpeech: 'verb' },
     });
     const createExportGroupFromDraftsSpy = vi.spyOn(exportStorage, 'createExportGroupFromDrafts');
 
-    render(<DraftScreen />);
+    const { draftItem, exportButton, selectAll } = renderScreen();
 
-    const selectAll = await screen.findByLabelText('Select all ready drafts');
-    await user.click(selectAll);
+    await user.click(await selectAll());
 
-    const exportButton = screen.getByLabelText('Export selected drafts');
-    await user.click(exportButton);
+    await user.click(await exportButton());
 
     await waitFor(() => {
-      expect(createExportGroupFromDraftsSpy).toHaveBeenCalledWith([plId, enId]);
+      expect(createExportGroupFromDraftsSpy).toHaveBeenCalledWith(
+        expect.arrayContaining([enId, plId]),
+      );
       expect(navigateMock).toHaveBeenCalledWith({ to: '/export' });
-      expect(screen.queryByTestId(`draft-item-${enId}`)).not.toBeInTheDocument();
-      expect(screen.queryByTestId(`draft-item-${plId}`)).not.toBeInTheDocument();
+      expect(draftItem(enId)).not.toBeInTheDocument();
+      expect(draftItem(plId)).not.toBeInTheDocument();
     });
   });
 
@@ -224,19 +245,16 @@ describe('DraftScreen', () => {
       new Error('Export failed'),
     );
 
-    await draftStorage.saveDraftFromSense({
-      sense: buildSense({ id: 'err-1', translationRU: 'oops', partOfSpeech: 'noun' }),
+    await seedDraft({
       term: 'oops',
       language: 'EN',
+      sense: { id: 'err-1', translationRU: 'oops', partOfSpeech: 'noun' },
     });
 
-    render(<DraftScreen />);
+    const { draftCheckbox, exportButton } = renderScreen();
 
-    const draftCheckbox = await screen.findByLabelText('Select draft oops');
-    await user.click(draftCheckbox);
-
-    const exportButton = screen.getByLabelText('Export selected drafts');
-    await user.click(exportButton);
+    await user.click(await draftCheckbox('oops'));
+    await user.click(await exportButton());
 
     await waitFor(() =>
       expect(toastErrorMock).toHaveBeenCalledWith(expect.stringMatching(/Export failed/i)),

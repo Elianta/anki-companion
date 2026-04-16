@@ -61,7 +61,7 @@ export async function saveDraftFromSense(
     if (!existing.card) {
       await maybeGenerateCard(existing.id!, backgroundGenerate);
     }
-    return existing.id;
+    return existing.id as number;
   }
 
   const draftId = await db.drafts.add(baseEntry);
