@@ -6,7 +6,7 @@ import { OpenAILLMClient } from "./openai-adapter.js";
 
 const clientCache = new Map<string, LLMClient>();
 const DEFAULT_PROVIDER: LLMProvider = "googleai";
-const DEFAULT_MODEL: LLMModel = "gemini-2.5-flash";
+const DEFAULT_MODEL: LLMModel = "gemini-3.1-flash-lite-preview";
 const SUPPORTED_PROVIDERS: readonly LLMProvider[] = [
   "openai",
   "googleai",

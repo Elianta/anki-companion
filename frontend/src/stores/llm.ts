@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 export type LLMProvider = 'openai' | 'googleai';
-export type LLMModel = 'gpt-4.1-mini' | 'gemini-2.5-flash';
+export type LLMModel = 'gpt-4.1-mini' | 'gemini-3.1-flash-lite-preview';
 
 type LLMState = {
   llmProvider: LLMProvider;
@@ -11,7 +11,9 @@ type LLMState = {
 };
 
 export const DEFAULT_LLM_PROVIDER: LLMProvider = 'googleai';
-export const DEFAULT_LLM_MODEL: LLMModel = 'gemini-2.5-flash';
+export const DEFAULT_LLM_MODEL: LLMModel = 'gemini-3.1-flash-lite-preview';
+
+const LLM_MODEL_SET = new Set<LLMModel>(['gpt-4.1-mini', 'gemini-3.1-flash-lite-preview']);
 
 const STORAGE_KEY = 'anki-llm-selection';
 
@@ -25,7 +27,11 @@ const readSelection = (): Pick<LLMState, 'llmProvider' | 'llmModel'> => {
       return { llmProvider: DEFAULT_LLM_PROVIDER, llmModel: DEFAULT_LLM_MODEL };
     }
     const parsed = JSON.parse(raw) as Partial<LLMState>;
-    if (parsed.llmProvider && parsed.llmModel) {
+    if (
+      parsed.llmProvider &&
+      parsed.llmModel &&
+      LLM_MODEL_SET.has(parsed.llmModel as LLMModel)
+    ) {
       return {
         llmProvider: parsed.llmProvider as LLMProvider,
         llmModel: parsed.llmModel as LLMModel,

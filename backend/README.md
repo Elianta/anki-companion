@@ -4,7 +4,7 @@ Small Express server that proxies OpenAI chat requests for the monorepo.
 
 ## Setup
 
-- Copy `.env.example` to `.env` and set at least one of `OPENAI_API_KEY` or `GEMINI_API_KEY`. Default provider/model: `googleai` / `gemini-2.5-flash`.
+- Copy `.env.example` to `.env` and set at least one of `OPENAI_API_KEY` or `GEMINI_API_KEY`. Default provider/model: `googleai` / `gemini-3.1-flash-lite-preview`.
 - (Optional) Enable rate limiting with Upstash Redis: set `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, and `RATE_LIMIT_ENABLED=true` (forced off when `NODE_ENV=development`).
 - LLM provider/model are selected per-request from the frontend; the server falls back to the defaults above when a provider/model is not supplied or not configured.
 - From repo root, install dependencies (already in workspace): `npm install`.

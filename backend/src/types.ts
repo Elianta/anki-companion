@@ -15,7 +15,10 @@ import type {
 export const LLM_PROVIDERS = ["googleai", "openai"] as const;
 export type LLMProvider = (typeof LLM_PROVIDERS)[number];
 
-export const LLM_MODELS = ["gpt-4.1-mini", "gemini-2.5-flash"] as const;
+export const LLM_MODELS = [
+  "gpt-4.1-mini",
+  "gemini-3.1-flash-lite-preview",
+] as const;
 export type LLMModel = (typeof LLM_MODELS)[number];
 
 export type LLMModelConfig = {

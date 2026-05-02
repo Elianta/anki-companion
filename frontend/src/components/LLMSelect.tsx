@@ -32,10 +32,10 @@ type LLMOption = {
 
 const OPTIONS: LLMOption[] = [
   {
-    value: 'googleai:gemini-2.5-flash',
-    label: 'Gemini 2.5 Flash',
+    value: 'googleai:gemini-3.1-flash-lite-preview',
+    label: 'Gemini 3.1 Flash Lite',
     provider: 'googleai',
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3.1-flash-lite-preview',
   },
   {
     value: 'openai:gpt-4.1-mini',

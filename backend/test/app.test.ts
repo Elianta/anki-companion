@@ -260,13 +260,13 @@ describe("createApp", () => {
           sense: { id: "sense-1", translationRU: "замок" },
         },
         llmProvider: "googleai",
-        llmModel: "gemini-2.5-flash",
+        llmModel: "gemini-3.1-flash-lite-preview",
       });
 
     expect(res.status).toBe(500);
     expect(llmClientFactory).toHaveBeenCalledWith({
       provider: "googleai",
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite-preview",
     });
     expect(res.body.error).toMatch(/card failure/i);
   });
