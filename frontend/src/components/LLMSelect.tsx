@@ -1,7 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
-import { BotIcon, CheckIcon } from 'lucide-react';
+import { CheckIcon } from 'lucide-react';
 import { useLLMStore, type LLMModel, type LLMProvider } from '@/stores/llm';
 import { Button } from '@/components/ui/button';
+import {
+  getProviderIcon,
+  getProviderLabel,
+} from '@/components/icons/llmProviderMeta';
 import {
   Drawer,
   DrawerClose,
@@ -92,7 +96,9 @@ export function LLMSelect({ className = '' }: LLMSelectProps) {
 
 export function LLMSelectDrawerButton({ className = '' }: LLMSelectProps) {
   const [open, setOpen] = useState(false);
-  const { value, handleChange } = useLLMSelectionController();
+  const { value, selectedOption, handleChange } = useLLMSelectionController();
+  const TriggerIcon = getProviderIcon(selectedOption.provider);
+  const triggerLabel = `Model: ${getProviderLabel(selectedOption.provider)}`;
 
   const handleSelect = (nextValue: string) => {
     handleChange(nextValue);
@@ -105,12 +111,15 @@ export function LLMSelectDrawerButton({ className = '' }: LLMSelectProps) {
         <Button
           type="button"
           variant="outline"
-          className={cn('h-9 gap-2 rounded-full px-3 text-sm font-medium md:hidden', className)}
+          className={cn(
+            'h-9 w-36 justify-start gap-2 rounded-full px-3 text-sm font-medium md:hidden',
+            className,
+          )}
           aria-label="Select AI model"
           data-test-id="llm-select-mobile-trigger"
         >
-          <BotIcon className="h-5 w-5" />
-          <span>AI model</span>
+          <TriggerIcon className="h-4 w-4 shrink-0" />
+          <span className="truncate">{triggerLabel}</span>
         </Button>
       </DrawerTrigger>
       <DrawerContent className="data-[vaul-drawer-direction=bottom]:rounded-t-2xl">
@@ -121,6 +130,7 @@ export function LLMSelectDrawerButton({ className = '' }: LLMSelectProps) {
           <div className="grid gap-2 px-4 pb-6">
             {OPTIONS.map((option) => {
               const isSelected = option.value === value;
+              const OptionIcon = getProviderIcon(option.provider);
 
               return (
                 <DrawerClose asChild key={option.value}>
@@ -136,7 +146,10 @@ export function LLMSelectDrawerButton({ className = '' }: LLMSelectProps) {
                     aria-pressed={isSelected}
                     data-test-id={`llm-option-${option.value}`}
                   >
-                    <span className="text-sm font-medium">{option.label}</span>
+                    <span className="flex items-center gap-3">
+                      <OptionIcon className="h-4 w-4 shrink-0" />
+                      <span className="text-sm font-medium">{option.label}</span>
+                    </span>
                     <CheckIcon
                       className={cn('h-4 w-4', isSelected ? 'opacity-100' : 'opacity-0')}
                     />
