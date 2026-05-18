@@ -24,7 +24,13 @@ export const cardRequestSchema = z.object({
   draft: z.object({
     term: z.string().min(1),
     language: z.enum(["EN", "PL"]),
-    noteType: z.enum(["EN: Default", "PL: Default", "PL: Verb"]),
+    noteType: z.enum([
+      "EN: Default",
+      "PL: Default",
+      "PL: Verb",
+      "PL: Nouns",
+      "PL: Verbs Inf",
+    ]),
     sense: z.object({
       id: z.string().min(1),
       translationRU: z.string().min(1),

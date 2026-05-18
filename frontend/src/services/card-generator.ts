@@ -6,7 +6,13 @@ import { getLLMSelection } from '@/stores/llm';
 const CARD_GENERATION_ENDPOINT = apiPath('/api/cards-generate');
 
 const generatedCardSchema = z.object({
-  noteType: z.enum(['EN: Default', 'PL: Default', 'PL: Verb']),
+  noteType: z.enum([
+    'EN: Default',
+    'PL: Default',
+    'PL: Verb',
+    'PL: Nouns',
+    'PL: Verbs Inf',
+  ]),
   fields: z.record(z.string(), z.unknown()),
   schemaName: z.string(),
   generatedAt: z.string(),

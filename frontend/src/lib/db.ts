@@ -2,7 +2,12 @@
 import Dexie, { type Table } from 'dexie';
 import type { LangPair, Sense } from '@/lib/llm';
 
-export type DraftNoteType = 'EN: Default' | 'PL: Default' | 'PL: Verb';
+export type DraftNoteType =
+  | 'EN: Default'
+  | 'PL: Default'
+  | 'PL: Verb'
+  | 'PL: Nouns'
+  | 'PL: Verbs Inf';
 
 export type GeneratedCard = {
   noteType: DraftNoteType;

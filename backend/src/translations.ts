@@ -6,34 +6,26 @@ export type SourceLanguage = "pl" | "en";
 const buildSystemPrompt = (sourceLanguage: SourceLanguage) =>
   `You are a bilingual lexicographer (${sourceLanguage === "pl" ? "Polish" : "English"} → Russian).
 
-Input may include an extra hint in square brackets, e.g.:
-${sourceLanguage === "pl" ? "- 'zamek [do drzwi]'\n- 'zamek [warownia]'" : "- 'castle [door hardware]'\n- 'castle [fortress]'"}
-Treat EVERYTHING inside square brackets as contextual disambiguation ONLY.
-Strip it from the lemma: source_word MUST be the clean ${
-    sourceLanguage === "pl" ? "Polish" : "English"
-  } lemma without any square brackets or their content.
-Do NOT echo the square brackets text in translations; use it only to pick the correct sense.
-
 Task:
 Given one ${sourceLanguage === "pl" ? "Polish" : "English"} word or short phrase, produce Russian translations.
-If multiple distinct senses exist, return maximum 2 most relevant senses.
+Input may include a hint in square brackets, e.g., 'zamek [do drzwi]' or 'castle [door hardware]'. Treat text in square brackets as context, but never include them in output fields.
+If multiple distinct senses exist, return a maximum of 2 most relevant senses.
 If input is not a valid word or phrase in ${sourceLanguage === "pl" ? "Polish" : "English"}, return an empty senses array.
-Provide 1 example sentence in ${
-    sourceLanguage === "pl" ? "Polish" : "English"
-  } with Russian translation.
-Output MUST be valid JSON ONLY, matching exactly the response schema. Do not output any fields that are not defined in the schema.`;
+
+Rules for fields (see schema for full details):
+- source_word: Remove square brackets and their content.
+- sense_note: A concise dictionary gloss in ${sourceLanguage === "pl" ? "Polish" : "English"}. For inflected/derived forms, briefly identify the relation to the base form (e.g., "past tense of X; X: definition of X").
+- Example sentence: Must use the exact user-provided surface form. Express bracketed context naturally without brackets in the sentences.
+
+Output MUST be valid JSON, strictly matching the provided schema.`;
 
 const buildEntrySchema = (sourceLanguage: SourceLanguage) =>
   z.strictObject({
     raw_input: z.string().meta({
-      description:
-        "Original user text exactly as entered, including brackets and context.",
+      description: "Original user text, including brackets and context.",
     }),
     source_word: z.string().meta({
-      description:
-        sourceLanguage === "pl"
-          ? "Polish lemma stripped of brackets and bracketed hints."
-          : "English lemma stripped of brackets and bracketed hints.",
+      description: `${sourceLanguage === "pl" ? "Polish" : "English"} lemma, stripped of any bracketed context.`,
     }),
     source_language: z.enum([sourceLanguage]),
     target_language: z.enum(["ru"]),
@@ -54,29 +46,33 @@ const buildEntrySchema = (sourceLanguage: SourceLanguage) =>
           sense_note: z
             .string()
             .nullable()
-            .meta({ description: "Short Russian gloss clarifying nuance." }),
+            .meta({
+              description: `Concise ${
+                sourceLanguage === "pl" ? "Polish" : "English"
+              } dictionary gloss. For inflected forms, explain relation to base form, then define the base form.`,
+            }),
           usage_frequency_level: z
             .enum(["low", "medium", "high"])
-            .meta({ description: "Relative frequency bucket." }),
+            .meta({ description: "Relative frequency (low, medium, high)." }),
           ...(sourceLanguage === "pl" && {
-            example_pl: z
-              .string()
-              .meta({ description: "Example sentence in Polish." }),
+            example_pl: z.string().meta({
+              description: "Example sentence in Polish.",
+            }),
           }),
           ...(sourceLanguage === "en" && {
-            example_en: z
-              .string()
-              .meta({ description: "Example sentence in English." }),
+            example_en: z.string().meta({
+              description: "Example sentence in English.",
+            }),
           }),
-          example_ru: z
-            .string()
-            .meta({ description: "Russian translation of the sentence." }),
-        })
+          example_ru: z.string().meta({
+            description: "Natural Russian translation of the example sentence.",
+          }),
+        }),
       )
       .default([])
       .meta({
         description:
-          "List of sense entries with Russian translations. Return maximum 2 most relevant senses.",
+          "List of up to 2 most relevant sense entries with translations.",
       }),
   });
 
@@ -120,7 +116,7 @@ export type TranslationPrompt = {
 
 export const buildTranslationPrompt = (
   rawInput: string,
-  sourceLanguage: SourceLanguage
+  sourceLanguage: SourceLanguage,
 ): TranslationPrompt & { userPrompt: string } => {
   const jsonSchema =
     sourceLanguage === "pl" ? SIMPLE_SCHEMA_PL : SIMPLE_SCHEMA_EN;
@@ -133,7 +129,7 @@ export const buildTranslationPrompt = (
 };
 
 export const parseTranslationResponse = (
-  content: string
+  content: string,
 ): SimpleTranslationEntry => {
   const parsedJson = JSON.parse(content);
   return translationEntrySchema.parse(parsedJson);
