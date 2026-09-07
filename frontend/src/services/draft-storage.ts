@@ -4,7 +4,7 @@ import { generateCardPayload } from '@/services/card-generator';
 
 const NOTE_TYPES_BY_LANGUAGE: Record<LangPair, DraftNoteType[]> = {
   EN: ['EN: Default'],
-  PL: ['PL: Default', 'PL: Verb', 'PL: Nouns', 'PL: Verbs Inf'],
+  PL: ['PL: Default', 'PL: Verbs', 'PL: Nouns', 'PL: Verbs Inf'],
 };
 
 export const getNoteTypesForLanguage = (language: LangPair): DraftNoteType[] => {

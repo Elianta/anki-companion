@@ -5,7 +5,7 @@ import type { LangPair, Sense } from '@/lib/llm';
 export type DraftNoteType =
   | 'EN: Default'
   | 'PL: Default'
-  | 'PL: Verb'
+  | 'PL: Verbs'
   | 'PL: Nouns'
   | 'PL: Verbs Inf';
 
@@ -77,6 +77,35 @@ class AppDatabase extends Dexie {
           .toCollection()
           .modify((group: ExportGroup) => {
             group.words = group.words ?? [];
+          });
+      });
+    this.version(4)
+      .stores({
+        drafts: '++id, senseId, term, language, exported',
+        exportGroups: '++id, createdAt',
+      })
+      .upgrade((tx) => {
+        tx.table('drafts')
+          .toCollection()
+          .modify((draft: DraftEntry) => {
+            if (draft.noteType === ('PL: Verb' as any)) {
+              draft.noteType = 'PL: Verbs';
+            }
+            if (draft.card && draft.card.noteType === ('PL: Verb' as any)) {
+              draft.card.noteType = 'PL: Verbs';
+            }
+          });
+
+        tx.table('exportGroups')
+          .toCollection()
+          .modify((group: ExportGroup) => {
+            if (group.files) {
+              group.files.forEach((file) => {
+                if (file.noteType === ('PL: Verb' as any)) {
+                  file.noteType = 'PL: Verbs';
+                }
+              });
+            }
           });
       });
   }

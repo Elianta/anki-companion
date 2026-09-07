@@ -4,7 +4,7 @@ import { z } from "zod";
 export type DraftNoteType =
   | "EN: Default"
   | "PL: Default"
-  | "PL: Verb"
+  | "PL: Verbs"
   | "PL: Nouns"
   | "PL: Verbs Inf";
 
@@ -327,7 +327,7 @@ export const CARD_SCHEMAS: Record<DraftNoteType, CardSchemaDefinition> = {
     Output MUST be valid JSON ONLY, matching exactly requested schema. No prose, no markdown.`,
     PL_DEFAULT_FIELDS,
   ),
-  "PL: Verb": createSchemaDefinition(
+  "PL: Verbs": createSchemaDefinition(
     "pl_verb_note",
     `You are a bilingual lexicographer (Polish → Russian) generating verb paradigms for ONE specific sense.
     Use ONLY the given context (Source word, Language, Sense translation (Ru), Sense note, Part of speech). If Part of speech is not a verb or the lemma is not conjugable in Polish, follow the schema’s fallback rules (e.g., emit empty arrays/fields as allowed) and do NOT invent forms.

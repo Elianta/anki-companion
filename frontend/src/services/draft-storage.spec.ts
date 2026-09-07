@@ -6,7 +6,7 @@ describe('draft-storage note type helpers', () => {
   it('returns all supported Polish note types in stable order', () => {
     expect(getNoteTypesForLanguage('PL')).toEqual([
       'PL: Default',
-      'PL: Verb',
+      'PL: Verbs',
       'PL: Nouns',
       'PL: Verbs Inf',
     ]);

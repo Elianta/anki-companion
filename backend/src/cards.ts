@@ -27,7 +27,7 @@ export const cardRequestSchema = z.object({
     noteType: z.enum([
       "EN: Default",
       "PL: Default",
-      "PL: Verb",
+      "PL: Verbs",
       "PL: Nouns",
       "PL: Verbs Inf",
     ]),
@@ -82,7 +82,7 @@ export const buildCardPrompt = (draft: DraftEntry) => {
 
   const systemPrompt = buildCardSystemPrompt(
     draft.noteType,
-    schemaDefinition.systemPrompt
+    schemaDefinition.systemPrompt,
   );
   const userPrompt = buildCardUserPrompt(draft);
 
@@ -91,7 +91,7 @@ export const buildCardPrompt = (draft: DraftEntry) => {
 
 export const parseGeneratedCard = (
   draft: DraftEntry,
-  rawContent: string
+  rawContent: string,
 ): GeneratedCard => {
   const { schemaDefinition } = buildCardPrompt(draft);
   const parsedFields = JSON.parse(rawContent);

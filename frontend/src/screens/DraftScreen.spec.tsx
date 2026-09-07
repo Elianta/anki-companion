@@ -185,12 +185,12 @@ describe('DraftScreen', () => {
 
     const trigger = await noteTypeTrigger('pisać');
     await user.click(trigger);
-    const verbOption = await screen.findByText('PL: Verb');
+    const verbOption = await screen.findByText('PL: Verbs');
     await user.click(verbOption);
 
     await waitFor(() => {
-      expect(trigger).toHaveTextContent('PL: Verb');
-      expect(updateDraftNoteTypeMock).toHaveBeenCalledWith(plDraftId, 'PL: Verb');
+      expect(trigger).toHaveTextContent('PL: Verbs');
+      expect(updateDraftNoteTypeMock).toHaveBeenCalledWith(plDraftId, 'PL: Verbs');
       expect(generateCardForDraftMock).toHaveBeenCalledWith(plDraftId);
     });
   });
