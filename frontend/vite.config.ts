@@ -1,8 +1,8 @@
-import path from 'path';
+import { fileURLToPath, URL } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -26,12 +26,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
-  },
-  test: {
-    environment: 'happy-dom',
-    globals: true,
-    setupFiles: './src/setupTests.ts',
   },
 });
