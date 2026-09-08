@@ -14,7 +14,20 @@
 Use TypeScript everywhere; prefer typed props/interfaces near their component. Follow functional React component patterns, keep hooks at the top level, and colocate hook logic in `lib/` or `stores/` when reused. Stick to Tailwind utility classes and shadcn variants for styling; define shared variants with `class-variance-authority`. Name files in `PascalCase.tsx` for components/screens, `kebab-case.ts` for helpers, and `useSomething.ts` for hooks or Zustand stores. Run Prettier (integrated via editor or `npx prettier . --write`) and ESLint before committing.
 
 ## Testing Guidelines
-Vitest + Testing Library power the suite (`src/screens/HomeScreen.spec.tsx` is the reference). Mirror the `*.spec.tsx` naming and place tests beside the feature or in a sibling `__tests__` folder. Leverage `data-test-id` attributes, which are globally configured in `src/setupTests.ts`. Write tests for new screens, store mutations, and complex UI states; aim for meaningful assertions rather than snapshot churn.
+Vitest + Testing Library power the suite. Mirror the `*.spec.tsx` naming and place tests beside the feature or in a sibling `__tests__` folder.
+
+Prefer queries that match real user behavior and accessibility:
+- use `getByRole`, `getByLabelText`, `getByText`, and accessible names first;
+- rely on `aria-label`, visible text, and semantic roles where possible;
+- use `data-test-id` only as a last resort for elements that have no stable accessible selector.
+
+Prefer `userEvent` for clicks, typing, and keyboard interaction. Use `fireEvent` only for low-level DOM-event cases where precise event control is needed and full user interaction would add noise.
+
+Write tests around observable behavior, not implementation details. Avoid assertions on internal call ordering or other brittle internals unless ordering is part of the contract. Keep each test focused on a single scenario or responsibility.
+
+Extract repeated setup into small helpers such as `setup()` or `renderScreen()`, and use factories or seed helpers for repeated test data. Keep helpers small enough that the scenario remains obvious at the call site.
+
+Use `findBy...` or `waitFor` for async UI transitions, loading states, and post-action updates. Prefer meaningful assertions over snapshots. Write tests for new screens, store mutations, and complex UI states.
 
 ## Commit & Pull Request Guidelines
 Commits follow a Conventional Commit style (`feat:`, `feat(tests):`, etc.). Use an imperative summary (~50 chars), add context in the body, and group unrelated changes into separate commits. PRs should include: concise description of the change, testing notes (`npm run test`, `npm run lint`), linked issues or task IDs, and screenshots/GIFs for UI tweaks. Keep PRs small enough for a <15 minute review and ensure CI (lint + tests) is green before requesting review.
