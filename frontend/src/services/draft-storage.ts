@@ -1,8 +1,7 @@
-import { liveQuery } from 'dexie';
 import { db, type DraftEntry, type DraftNoteType } from '@/lib/db';
 import type { LangPair, Sense } from '@/lib/llm';
 import { generateCardPayload } from '@/services/card-generator';
-
+import { useDraftCountStore } from '@/stores/drafts';
 const NOTE_TYPES_BY_LANGUAGE: Record<LangPair, DraftNoteType[]> = {
   EN: ['EN: Default'],
   PL: ['PL: Default', 'PL: Verbs', 'PL: Nouns', 'PL: Verbs Inf'],
@@ -38,28 +37,6 @@ const maybeGenerateCard = async (draftId: number, background: boolean) => {
   await generateCardForDraft(draftId);
 };
 
-export function subscribeDraftCount(callback: (count: number) => void): () => void {
-  let prevCount: number | undefined;
-
-  const observable = liveQuery(() => db.drafts.filter((draft) => !draft.exported).count());
-
-  const subscription = observable.subscribe({
-    next: (count) => {
-      if (count !== prevCount) {
-        prevCount = count;
-        callback(count);
-      }
-    },
-    error: (error) => {
-      console.warn('Failed to watch draft count', error);
-    },
-  });
-
-  return () => {
-    subscription.unsubscribe();
-  };
-}
-
 export async function saveDraftFromSense(
   { sense, term, language }: SaveDraftParams,
   { backgroundGenerate = false }: SaveDraftOptions = {},
@@ -89,6 +66,7 @@ export async function saveDraftFromSense(
   }
 
   const draftId = await db.drafts.add(baseEntry);
+  useDraftCountStore.getState().increment();
   await maybeGenerateCard(draftId, backgroundGenerate);
   return draftId;
 }
@@ -108,10 +86,12 @@ export async function updateDraftNoteType(id: number, noteType: DraftNoteType) {
 
 export async function removeDraft(id: number) {
   await db.drafts.delete(id);
+  useDraftCountStore.getState().decrement();
 }
 
 export async function clearDrafts() {
   await db.drafts.clear();
+  useDraftCountStore.getState().setCount(0);
 }
 
 export async function generateCardForDraft(id: number) {
@@ -138,4 +118,5 @@ export async function updateDraftCardFields(id: number, fields: Record<string, u
 
 export async function returnDraftToQueue(id: number) {
   await db.drafts.update(id, { exported: false, exportedAt: null });
+  useDraftCountStore.getState().increment();
 }

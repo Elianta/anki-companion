@@ -2,7 +2,6 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AppShell } from './AppShell';
-import { db } from '@/lib/db';
 import { saveDraftFromSense, clearDrafts } from '@/services/draft-storage';
 
 vi.mock('@/services/card-generator', () => ({
@@ -93,7 +92,7 @@ describe('AppShell', () => {
       expect(screen.getByTestId('drafts-badge-mobile')).toHaveTextContent('1');
     });
 
-    await db.drafts.clear();
+    await clearDrafts();
 
     await waitFor(() => {
       expect(screen.queryByTestId('drafts-badge-mobile')).not.toBeInTheDocument();

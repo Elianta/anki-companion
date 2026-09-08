@@ -25,6 +25,7 @@ import {
 import { formatRateLimitMessage, isRateLimitError } from '@/services/api';
 import { createExportGroupFromDrafts } from '@/services/export-storage';
 import { CardEditorButton } from '@/components/drafts/CardEditorButton';
+import { useDraftCountStore } from '@/stores/drafts';
 
 export function DraftScreen() {
   const navigate = useNavigate({ from: '/draft' });
@@ -41,6 +42,9 @@ export function DraftScreen() {
     try {
       const storedDrafts = await fetchDrafts();
       setDrafts(storedDrafts);
+      useDraftCountStore
+        .getState()
+        .setCount(storedDrafts.filter((draft) => !draft.exported).length);
       setSelectedIds((prev) => {
         const allowed = new Set(
           storedDrafts

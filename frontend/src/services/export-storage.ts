@@ -1,4 +1,5 @@
 import { db, type DraftEntry, type DraftNoteType, type ExportGroup } from '@/lib/db';
+import { useDraftCountStore } from '@/stores/drafts';
 
 const escapeCsvValue = (value: unknown) => {
   const str = `${value ?? ''}`.replace(/"/g, '""');
@@ -6,7 +7,10 @@ const escapeCsvValue = (value: unknown) => {
 };
 
 const buildFileName = (noteType: DraftNoteType, createdAt: string) => {
-  const slug = noteType.toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/-+/g, '-');
+  const slug = noteType
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gi, '-')
+    .replace(/-+/g, '-');
   const timestamp = createdAt.replace(/[:.]/g, '-');
   return `${slug}-${timestamp}.csv`;
 };
@@ -53,11 +57,14 @@ export async function createExportGroupFromDrafts(draftIds: number[]): Promise<E
   }
 
   const createdAt = new Date().toISOString();
-  const byNoteType = draftsWithCards.reduce<Record<DraftNoteType, DraftEntry[]>>((acc, draft) => {
-    acc[draft.noteType] = acc[draft.noteType] ?? [];
-    acc[draft.noteType].push(draft);
-    return acc;
-  }, {} as Record<DraftNoteType, DraftEntry[]>);
+  const byNoteType = draftsWithCards.reduce<Record<DraftNoteType, DraftEntry[]>>(
+    (acc, draft) => {
+      acc[draft.noteType] = acc[draft.noteType] ?? [];
+      acc[draft.noteType].push(draft);
+      return acc;
+    },
+    {} as Record<DraftNoteType, DraftEntry[]>,
+  );
 
   const files = Object.entries(byNoteType).map(([noteType, entries]) => ({
     noteType: noteType as DraftNoteType,
@@ -79,6 +86,7 @@ export async function createExportGroupFromDrafts(draftIds: number[]): Promise<E
       db.drafts.update(draft.id!, { exported: true, exportedAt: createdAt }),
     ),
   );
+  useDraftCountStore.getState().decrement(draftsWithCards.length);
 
   return { ...group, id };
 }

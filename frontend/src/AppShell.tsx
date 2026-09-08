@@ -2,8 +2,8 @@ import { Link, Outlet, useRouterState } from '@tanstack/react-router';
 import { BookmarkIcon, ClockIcon, HomeIcon, UploadCloudIcon } from 'lucide-react';
 
 import { useSessionStore } from '@/stores/session';
-import { useEffect, useState } from 'react';
-import { subscribeDraftCount } from '@/services/draft-storage';
+import { useEffect } from 'react';
+import { useDraftCountStore } from '@/stores/drafts';
 import { LLMSelect, LLMSelectDrawerButton } from '@/components/LLMSelect';
 
 const NAV_LINKS = [
@@ -14,7 +14,8 @@ const NAV_LINKS = [
 ];
 
 export function AppShell() {
-  const [draftCount, setDraftCount] = useState(0);
+  const draftCount = useDraftCountStore((state) => state.count);
+  const initCount = useDraftCountStore((state) => state.initCount);
   const { location } = useRouterState({
     select: (state) => ({ location: state.location }),
   });
@@ -27,12 +28,8 @@ export function AppShell() {
   };
 
   useEffect(() => {
-    const unsubscribe = subscribeDraftCount((count) => {
-      setDraftCount(count);
-    });
-
-    return unsubscribe;
-  }, []);
+    void initCount();
+  }, [initCount]);
 
   return (
     <div className="grid grid-rows-[max-content_minmax(400px,1fr)] min-h-svh bg-background text-foreground">

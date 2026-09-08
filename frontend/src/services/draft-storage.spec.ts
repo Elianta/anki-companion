@@ -1,6 +1,14 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getDefaultNoteType, getNoteTypesForLanguage } from './draft-storage';
+import { db } from '@/lib/db';
+import { useDraftCountStore } from '@/stores/drafts';
+import {
+  clearDrafts,
+  getDefaultNoteType,
+  getNoteTypesForLanguage,
+  removeDraft,
+  saveDraftFromSense,
+} from './draft-storage';
 
 vi.mock('@/services/card-generator', () => ({
   generateCardPayload: vi.fn(async () => ({
@@ -25,20 +33,37 @@ describe('draft-storage note type helpers', () => {
   it('keeps PL default note type unchanged', () => {
     expect(getDefaultNoteType('PL')).toBe('PL: Default');
   });
+});
 
-  it('notifies subscribers of draft count changes via subscribeDraftCount', async () => {
-    const { db } = await import('@/lib/db');
-    const { subscribeDraftCount, saveDraftFromSense, removeDraft } =
-      await import('./draft-storage');
-    await db.drafts.clear();
+describe('draft count store integration', () => {
+  beforeEach(async () => {
+    await clearDrafts();
+    useDraftCountStore.getState().setCount(0);
+  });
 
-    const counts: number[] = [];
-    const unsubscribe = subscribeDraftCount((count) => {
-      counts.push(count);
+  it('initializes count correctly from existing database records', async () => {
+    await db.drafts.add({
+      term: 'apple',
+      language: 'EN',
+      noteType: 'EN: Default',
+      sense: { id: 'apple-1', translationRU: 'яблоко' },
+      exported: false,
+    });
+    await db.drafts.add({
+      term: 'banana',
+      language: 'EN',
+      noteType: 'EN: Default',
+      sense: { id: 'banana-1', translationRU: 'банан' },
+      exported: true,
     });
 
-    // Wait for initial count
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await useDraftCountStore.getState().initCount();
+
+    expect(useDraftCountStore.getState().count).toBe(1);
+  });
+
+  it('optimistically increments and decrements count on save and remove', async () => {
+    expect(useDraftCountStore.getState().count).toBe(0);
 
     const draftId = await saveDraftFromSense(
       {
@@ -49,14 +74,58 @@ describe('draft-storage note type helpers', () => {
       { backgroundGenerate: false },
     );
 
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(useDraftCountStore.getState().count).toBe(1);
 
     await removeDraft(draftId);
 
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(useDraftCountStore.getState().count).toBe(0);
+  });
 
-    unsubscribe();
+  it('correctly tracks multiple sequential draft additions', async () => {
+    expect(useDraftCountStore.getState().count).toBe(0);
 
-    expect(counts).toEqual([0, 1, 0]);
+    await saveDraftFromSense(
+      {
+        sense: { id: 'sense-1', translationRU: 'первый' },
+        term: 'first',
+        language: 'EN',
+      },
+      { backgroundGenerate: false },
+    );
+    expect(useDraftCountStore.getState().count).toBe(1);
+
+    await saveDraftFromSense(
+      {
+        sense: { id: 'sense-2', translationRU: 'второй' },
+        term: 'second',
+        language: 'EN',
+      },
+      { backgroundGenerate: false },
+    );
+    expect(useDraftCountStore.getState().count).toBe(2);
+  });
+
+  it('tracks multiple draft additions with backgroundGenerate: true', async () => {
+    expect(useDraftCountStore.getState().count).toBe(0);
+
+    await saveDraftFromSense(
+      {
+        sense: { id: 'sense-1', translationRU: 'первый' },
+        term: 'first',
+        language: 'EN',
+      },
+      { backgroundGenerate: true },
+    );
+    expect(useDraftCountStore.getState().count).toBe(1);
+
+    await saveDraftFromSense(
+      {
+        sense: { id: 'sense-2', translationRU: 'второй' },
+        term: 'second',
+        language: 'EN',
+      },
+      { backgroundGenerate: true },
+    );
+    expect(useDraftCountStore.getState().count).toBe(2);
   });
 });
