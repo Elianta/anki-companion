@@ -3,7 +3,7 @@ import { BookmarkIcon, ClockIcon, HomeIcon, UploadCloudIcon } from 'lucide-react
 
 import { useSessionStore } from '@/stores/session';
 import { useEffect, useState } from 'react';
-import { fetchDrafts } from '@/services/draft-storage';
+import { subscribeDraftCount } from '@/services/draft-storage';
 import { LLMSelect, LLMSelectDrawerButton } from '@/components/LLMSelect';
 
 const NAV_LINKS = [
@@ -14,7 +14,7 @@ const NAV_LINKS = [
 ];
 
 export function AppShell() {
-  const [readyDraftCount, setReadyDraftCount] = useState(0);
+  const [draftCount, setDraftCount] = useState(0);
   const { location } = useRouterState({
     select: (state) => ({ location: state.location }),
   });
@@ -27,24 +27,12 @@ export function AppShell() {
   };
 
   useEffect(() => {
-    let active = true;
-    const loadDraftCount = async () => {
-      try {
-        const drafts = await fetchDrafts();
-        const ready = drafts.filter((draft) => draft.card && !draft.exported).length;
-        if (active) {
-          setReadyDraftCount(ready);
-        }
-      } catch (error) {
-        console.warn('Failed to load drafts for badge', error);
-      }
-    };
+    const unsubscribe = subscribeDraftCount((count) => {
+      setDraftCount(count);
+    });
 
-    loadDraftCount();
-    return () => {
-      active = false;
-    };
-  }, [location.pathname]);
+    return unsubscribe;
+  }, []);
 
   return (
     <div className="grid grid-rows-[max-content_minmax(400px,1fr)] min-h-svh bg-background text-foreground">
@@ -58,18 +46,29 @@ export function AppShell() {
             </div>
           </div>
           <nav className="hidden items-center gap-4 md:flex">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.to}
-                to={link.to}
-                activeProps={{
-                  'data-active': true,
-                }}
-                className="px-2 py-3 text-sm font-medium text-slate-500 transition hover:text-slate-900 data-[active=true]:text-slate-900"
-              >
-                {link.label}
-              </Link>
-            ))}
+            {NAV_LINKS.map((link) => {
+              const showBadge = link.to === '/draft' && draftCount > 0;
+              return (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  activeProps={{
+                    'data-active': true,
+                  }}
+                  className="relative flex items-center gap-1 px-2 py-3 text-sm font-medium text-slate-500 transition hover:text-slate-900 data-[active=true]:text-slate-900"
+                >
+                  {link.label}
+                  {showBadge && (
+                    <span
+                      data-test-id="drafts-badge-desktop"
+                      className="flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold leading-4 text-white"
+                    >
+                      {draftCount}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
             <div className="hidden md:block">
               <LLMSelect />
             </div>
@@ -95,7 +94,7 @@ export function AppShell() {
           </button>
           {NAV_LINKS.map((link, idx) => {
             const Icon = link.icon;
-            const showBadge = link.to === '/draft' && readyDraftCount > 0;
+            const showBadge = link.to === '/draft' && draftCount > 0;
             const order = idx < 2 ? idx + 1 : idx + 2;
             return (
               <Link
@@ -110,8 +109,11 @@ export function AppShell() {
                 <Icon className="h-5 w-5" />
                 {link.label}
                 {showBadge && (
-                  <span className="absolute right-3 -top-0.5 h-4 min-w-4 rounded-full flex justify-center bg-rose-500 px-1 text-[10px] font-semibold leading-4 text-white">
-                    {readyDraftCount}
+                  <span
+                    data-test-id="drafts-badge-mobile"
+                    className="absolute right-3 -top-0.5 h-4 min-w-4 rounded-full flex justify-center bg-rose-500 px-1 text-[10px] font-semibold leading-4 text-white"
+                  >
+                    {draftCount}
                   </span>
                 )}
               </Link>

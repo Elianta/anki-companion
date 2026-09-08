@@ -1,3 +1,4 @@
+import { liveQuery } from 'dexie';
 import { db, type DraftEntry, type DraftNoteType } from '@/lib/db';
 import type { LangPair, Sense } from '@/lib/llm';
 import { generateCardPayload } from '@/services/card-generator';
@@ -37,11 +38,34 @@ const maybeGenerateCard = async (draftId: number, background: boolean) => {
   await generateCardForDraft(draftId);
 };
 
+export function subscribeDraftCount(callback: (count: number) => void): () => void {
+  let prevCount: number | undefined;
+
+  const observable = liveQuery(() => db.drafts.filter((draft) => !draft.exported).count());
+
+  const subscription = observable.subscribe({
+    next: (count) => {
+      if (count !== prevCount) {
+        prevCount = count;
+        callback(count);
+      }
+    },
+    error: (error) => {
+      console.warn('Failed to watch draft count', error);
+    },
+  });
+
+  return () => {
+    subscription.unsubscribe();
+  };
+}
+
 export async function saveDraftFromSense(
   { sense, term, language }: SaveDraftParams,
   { backgroundGenerate = false }: SaveDraftOptions = {},
 ) {
   const baseEntry: DraftEntry = {
+    senseId: sense.id,
     term,
     language,
     noteType: getDefaultNoteType(language),

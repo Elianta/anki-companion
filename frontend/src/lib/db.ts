@@ -18,6 +18,7 @@ export type GeneratedCard = {
 
 export type DraftEntry = {
   id?: number;
+  senseId?: string;
   term: string;
   language: LangPair;
   noteType: DraftNoteType;
