@@ -53,6 +53,7 @@ let user: ReturnType<typeof userEvent.setup>;
 describe('HomeScreen', () => {
   beforeEach(() => {
     user = userEvent.setup();
+    localStorage.clear();
     useSessionStore.setState(createSessionSnapshot());
     mockNavigate.mockReset();
     disambiguateMock.mockReset();
