@@ -95,90 +95,44 @@ const PL_VERB_FIELDS: FieldMap = {
   Verb: stringField("Original Polish verb or chunk."),
   Definition: stringField("Polish definition matching the sense."),
   Translation: stringField("Russian translation of the verb."),
-  FormJa: stringField("Present tense, singular, first person (ja)."),
-  ExampleFormJa: stringField("Sentence using the verb in FormJa."),
-  FormTy: stringField("Present tense, singular, second person (ty)."),
-  ExampleFormTy: stringField("Sentence using the verb in FormTy."),
-  FormOn: stringField("Present tense, singular, third person masculine (on)."),
-  ExampleFormOn: stringField("Sentence using the verb in FormOn."),
-  FormMy: stringField("Present tense, plural, first person (my)."),
-  ExampleFormMy: stringField("Sentence using the verb in FormMy."),
-  FormWy: stringField("Present tense, plural, second person (wy)."),
-  ExampleFormWy: stringField("Sentence using the verb in FormWy."),
-  FormOni: stringField("Present tense, plural, third person masculine (oni)."),
-  ExampleFormOni: stringField("Sentence using the verb in FormOni."),
-  FormMJaPrzeszly: stringField(
-    "Past tense, masculine, singular, first person (ja).",
-  ),
-  ExampleFormMJaPrzeszly: stringField(
-    "Sentence using the verb in FormMJaPrzeszly.",
-  ),
-  FormMTyPrzeszly: stringField(
-    "Past tense, masculine, singular, second person (ty).",
-  ),
-  ExampleFormMTyPrzeszly: stringField(
-    "Sentence using the verb in FormMTyPrzeszly.",
-  ),
-  FormMOnPrzeszly: stringField(
-    "Past tense, masculine, singular, third person (on).",
-  ),
-  ExampleFormMOnPrzeszly: stringField(
-    "Sentence using the verb in FormMOnPrzeszly.",
-  ),
-  FormMMyPrzeszly: stringField(
-    "Past tense, masculine, plural, first person (my).",
-  ),
-  ExampleFormMMyPrzeszly: stringField(
-    "Sentence using the verb in FormMMyPrzeszly.",
-  ),
-  FormMWyPrzeszly: stringField(
-    "Past tense, masculine, plural, second person (wy).",
-  ),
-  ExampleFormMWyPrzeszly: stringField(
-    "Sentence using the verb in FormMWyPrzeszly.",
-  ),
-  FormMOniPrzeszly: stringField(
-    "Past tense, masculine, plural, third person (oni).",
-  ),
-  ExampleFormMOniPrzeszly: stringField(
-    "Sentence using the verb in FormMOniPrzeszly.",
-  ),
-  FormZJaPrzeszly: stringField(
-    "Past tense, feminine, singular, first person (ja).",
-  ),
-  ExampleFormZJaPrzeszly: stringField(
-    "Sentence using the verb in FormZJaPrzeszly.",
-  ),
-  FormZTyPrzeszly: stringField(
-    "Past tense, feminine, singular, second person (ty).",
-  ),
-  ExampleFormZTyPrzeszly: stringField(
-    "Sentence using the verb in FormZTyPrzeszly.",
-  ),
-  FormZOnaPrzeszly: stringField(
-    "Past tense, feminine, singular, third person (ona).",
-  ),
-  ExampleFormZOnaPrzeszly: stringField(
-    "Sentence using the verb in FormZOnaPrzeszly.",
-  ),
-  FormZMyPrzeszly: stringField(
-    "Past tense, feminine, plural, first person (my).",
-  ),
-  ExampleFormZMyPrzeszly: stringField(
-    "Sentence using the verb in FormZMyPrzeszly.",
-  ),
-  FormZWyPrzeszly: stringField(
-    "Past tense, feminine, plural, second person (wy).",
-  ),
-  ExampleFormZWyPrzeszly: stringField(
-    "Sentence using the verb in FormZWyPrzeszly.",
-  ),
-  FormZOnePrzeszly: stringField(
-    "Past tense, feminine, plural, third person (one).",
-  ),
-  ExampleFormZOnePrzeszly: stringField(
-    "Sentence using the verb in FormZOnePrzeszly.",
-  ),
+  Aspekt: stringField("Aspect: 'dokonany' or 'niedokonany'."),
+  ParaAspektowa: stringField("Aspectual pair infinitive, or empty string."),
+  FormJa: stringField("Present (ndk) or simple future (dk), 1sg (ja)."),
+  ExampleFormJa: stringField("Sentence using FormJa."),
+  FormTy: stringField("Present (ndk) or simple future (dk), 2sg (ty)."),
+  ExampleFormTy: stringField("Sentence using FormTy."),
+  FormOn: stringField("Present (ndk) or simple future (dk), 3sg masc (on)."),
+  ExampleFormOn: stringField("Sentence using FormOn."),
+  FormMy: stringField("Present (ndk) or simple future (dk), 1pl (my)."),
+  ExampleFormMy: stringField("Sentence using FormMy."),
+  FormWy: stringField("Present (ndk) or simple future (dk), 2pl (wy)."),
+  ExampleFormWy: stringField("Sentence using FormWy."),
+  FormOni: stringField("Present (ndk) or simple future (dk), 3pl masc (oni)."),
+  ExampleFormOni: stringField("Sentence using FormOni."),
+  FormMJaPrzeszly: stringField("Past tense, masculine 1sg (ja)."),
+  ExampleFormMJaPrzeszly: stringField("Sentence using FormMJaPrzeszly."),
+  FormMTyPrzeszly: stringField("Past tense, masculine 2sg (ty)."),
+  ExampleFormMTyPrzeszly: stringField("Sentence using FormMTyPrzeszly."),
+  FormMOnPrzeszly: stringField("Past tense, masculine 3sg (on)."),
+  ExampleFormMOnPrzeszly: stringField("Sentence using FormMOnPrzeszly."),
+  FormMMyPrzeszly: stringField("Past tense, masculine 1pl (my)."),
+  ExampleFormMMyPrzeszly: stringField("Sentence using FormMMyPrzeszly."),
+  FormMWyPrzeszly: stringField("Past tense, masculine 2pl (wy)."),
+  ExampleFormMWyPrzeszly: stringField("Sentence using FormMWyPrzeszly."),
+  FormMOniPrzeszly: stringField("Past tense, masculine 3pl (oni)."),
+  ExampleFormMOniPrzeszly: stringField("Sentence using FormMOniPrzeszly."),
+  FormZJaPrzeszly: stringField("Past tense, feminine 1sg (ja)."),
+  ExampleFormZJaPrzeszly: stringField("Sentence using FormZJaPrzeszly."),
+  FormZTyPrzeszly: stringField("Past tense, feminine 2sg (ty)."),
+  ExampleFormZTyPrzeszly: stringField("Sentence using FormZTyPrzeszly."),
+  FormZOnaPrzeszly: stringField("Past tense, feminine 3sg (ona)."),
+  ExampleFormZOnaPrzeszly: stringField("Sentence using FormZOnaPrzeszly."),
+  FormZMyPrzeszly: stringField("Past tense, feminine 1pl (my)."),
+  ExampleFormZMyPrzeszly: stringField("Sentence using FormZMyPrzeszly."),
+  FormZWyPrzeszly: stringField("Past tense, feminine 2pl (wy)."),
+  ExampleFormZWyPrzeszly: stringField("Sentence using FormZWyPrzeszly."),
+  FormZOnePrzeszly: stringField("Past tense, feminine 3pl (one)."),
+  ExampleFormZOnePrzeszly: stringField("Sentence using FormZOnePrzeszly."),
 };
 
 const PL_NOUNS_FIELDS: FieldMap = {
@@ -186,17 +140,17 @@ const PL_NOUNS_FIELDS: FieldMap = {
   Definition: stringField("Polish definition matching the provided sense."),
   Translation: stringField("Russian translation of the noun."),
   Example1: stringField(
-    "Polish sentence with the lemma exactly as supplied in nominative singular.",
+    "Polish sentence using the noun in the grammatically correct case.",
   ),
   Example1Spaces: stringField(
-    "Example1 with the lemma replaced by underscores (one underscore per character, split groups for phrases).",
+    "Example1 with the noun replaced by underscores (one underscore per character).",
   ),
   Example1RU: stringField("Russian translation of Example1."),
   Example2: stringField(
-    "Another Polish sentence with the same constraints as Example1.",
+    "Another Polish sentence using the noun in the grammatically correct case.",
   ),
   Example2Spaces: stringField(
-    "Example2 with the lemma replaced by underscores (one underscore per character, split groups for phrases).",
+    "Example2 with the noun replaced by underscores (one underscore per character).",
   ),
   Example2RU: stringField("Russian translation of Example2."),
   FormLpM: stringField(
@@ -333,12 +287,9 @@ export const CARD_SCHEMAS: Record<DraftNoteType, CardSchemaDefinition> = {
     Use ONLY the given context (Source word, Language, Sense translation (Ru), Sense note, Part of speech). If Part of speech is not a verb or the lemma is not conjugable in Polish, follow the schema’s fallback rules (e.g., emit empty arrays/fields as allowed) and do NOT invent forms.
     ${EXAMPLE_SENTENCE_GUIDANCE}
     TASK
-    1) Provide ALL required present-tense and past-tense forms for the Polish verb as specified by json_schema (fill every conjugation slot defined by the schema).
-      - Respect standard Polish conjugation, orthography, and diacritics.
-      - Keep forms aligned to THIS sense; do not introduce other meanings.
-    2) For EACH inflected form, provide EXACTLY ONE natural Polish example sentence that correctly uses that specific form in context of THIS sense. Ensure the example is grammatical, idiomatic, and informative enough that the hidden form would still be reasonably inferable from context.
-    3) If the schema includes metadata fields (e.g., aspect, person/number/gender labels), populate them precisely; otherwise keep to the exact structure defined by the schema.
-    4) Prefer safety over speculation: where uncertain and the schema allows, output the safest empty value rather than hallucinate.
+    1) Set "Aspekt" ("dokonany" | "niedokonany") and "ParaAspektowa" (infinitive pair or "").
+    2) In ALL forms and examples, strictly use the SOURCE verb and its aspect. Never conjugate or use ParaAspektowa (for perfective verbs, FormJa..FormOni are simple future forms like "zrobię").
+    3) Provide all required inflected forms and exactly one natural, informative example sentence for each form.
     Output MUST be valid JSON ONLY, matching exactly requested schema. No prose, no markdown.`,
     PL_VERB_FIELDS,
   ),
@@ -348,15 +299,10 @@ export const CARD_SCHEMAS: Record<DraftNoteType, CardSchemaDefinition> = {
     Use ONLY the given context (Source word, Language, Sense translation (Ru), Sense note, Part of speech). If the lemma is not a Polish noun or a required form is genuinely unavailable, return the safest possible string and do NOT invent unsupported grammar.
     ${EXAMPLE_SENTENCE_GUIDANCE}
     TASK
-    1) Create EXACTLY TWO natural Polish example sentences that unambiguously express THIS sense of the noun.
-      - Use the lemma exactly as supplied in nominative singular in both examples.
-    2) For EACH example, also provide:
-      - A faithful Russian translation.
-      - A masked variant where every standalone occurrence of the exact source noun is replaced with underscores.
-    3) Fill all required noun forms for singular and plural cases exactly as requested by the schema.
-      - Respect standard Polish declension, animacy, and orthography.
-      - Keep every form aligned to the same lexical item and sense.
-    4) Output MUST be valid JSON ONLY, matching exactly requested schema. No prose, no markdown.`,
+    1) Create EXACTLY TWO natural Polish example sentences for THIS sense. Use the noun in the grammatically correct case required by the sentence (do not force nominative).
+    2) For EACH example, provide Russian translation and a masked variant (the inflected noun replaced by underscores, 1 per character).
+    3) Fill all required singular (FormLp*) and plural (FormLm*) declension forms for this sense.
+    Output MUST be valid JSON ONLY, matching exactly requested schema. No prose, no markdown.`,
     PL_NOUNS_FIELDS,
   ),
   "PL: Verbs Inf": createSchemaDefinition(
