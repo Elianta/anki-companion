@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 export type LLMProvider = 'openai' | 'googleai';
-export type LLMModel = 'gpt-5.6-luna' | 'gemini-3.5-flash-lite' | 'gemini-3.8-flash';
+export type LLMModel = 'gpt-5.6-luna' | 'gemini-3.5-flash-lite' | 'gemini-3.7-flash';
 
 type LLMState = {
   llmProvider: LLMProvider;
@@ -16,7 +16,7 @@ export const DEFAULT_LLM_MODEL: LLMModel = 'gemini-3.5-flash-lite';
 const LLM_MODEL_SET = new Set<LLMModel>([
   'gpt-5.6-luna',
   'gemini-3.5-flash-lite',
-  'gemini-3.8-flash',
+  'gemini-3.7-flash',
 ]);
 
 const STORAGE_KEY = 'anki-llm-selection';

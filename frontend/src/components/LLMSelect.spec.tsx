@@ -31,7 +31,7 @@ describe('LLMSelectDrawerButton', () => {
     expect(useLLMStore.getState().llmModel).toBe('gpt-5.6-luna');
   });
 
-  it('updates to gemini-3.5-flash-lite and gemini-3.8-flash from the drawer', async () => {
+  it('updates to gemini-3.5-flash-lite and gemini-3.7-flash from the drawer', async () => {
     const user = userEvent.setup();
     render(<LLMSelectDrawerButton />);
 
@@ -42,9 +42,9 @@ describe('LLMSelectDrawerButton', () => {
     expect(useLLMStore.getState().llmModel).toBe('gemini-3.5-flash-lite');
 
     await user.click(screen.getByLabelText('Select AI model'));
-    await user.click(screen.getByTestId('llm-option-googleai:gemini-3.8-flash'));
+    await user.click(screen.getByTestId('llm-option-googleai:gemini-3.7-flash'));
 
     expect(useLLMStore.getState().llmProvider).toBe('googleai');
-    expect(useLLMStore.getState().llmModel).toBe('gemini-3.8-flash');
+    expect(useLLMStore.getState().llmModel).toBe('gemini-3.7-flash');
   });
 });

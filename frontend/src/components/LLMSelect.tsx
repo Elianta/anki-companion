@@ -39,10 +39,10 @@ const OPTIONS: LLMOption[] = [
     model: 'gemini-3.5-flash-lite',
   },
   {
-    value: 'googleai:gemini-3.8-flash',
-    label: 'Gemini 3.8 Flash',
+    value: 'googleai:gemini-3.7-flash',
+    label: 'Gemini 3.7 Flash',
     provider: 'googleai',
-    model: 'gemini-3.8-flash',
+    model: 'gemini-3.7-flash',
   },
   {
     value: 'openai:gpt-5.6-luna',

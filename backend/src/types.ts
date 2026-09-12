@@ -18,7 +18,7 @@ export type LLMProvider = (typeof LLM_PROVIDERS)[number];
 export const LLM_MODELS = [
   "gpt-5.6-luna",
   "gemini-3.5-flash-lite",
-  "gemini-3.8-flash",
+  "gemini-3.7-flash",
 ] as const;
 export type LLMModel = (typeof LLM_MODELS)[number];
 
