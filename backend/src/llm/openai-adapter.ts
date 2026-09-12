@@ -40,6 +40,11 @@ const ensureContent = (completion: {
   return content;
 };
 
+const getDefaultTemperature = (model: string): number =>
+  model.startsWith("o1") || model.startsWith("o3") || model.startsWith("gpt-5")
+    ? 1
+    : DEFAULT_TEMPERATURE;
+
 type OpenAIAdapterOptions = {
   client: OpenAIClient;
   model: string;
@@ -54,7 +59,8 @@ export class OpenAILLMClient implements LLMClient {
   constructor(options: OpenAIAdapterOptions) {
     this.client = options.client;
     this.model = options.model;
-    this.temperature = options.temperature ?? DEFAULT_TEMPERATURE;
+    this.temperature =
+      options.temperature ?? getDefaultTemperature(options.model);
   }
 
   async translate({
@@ -63,7 +69,7 @@ export class OpenAILLMClient implements LLMClient {
   }: TranslationRequest): Promise<SimpleTranslationEntry> {
     const { jsonSchema, systemPrompt, userPrompt } = buildTranslationPrompt(
       rawInput,
-      sourceLanguage
+      sourceLanguage,
     );
 
     const completion = await this.client.chat.completions.create({

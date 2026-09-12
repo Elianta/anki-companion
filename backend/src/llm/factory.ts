@@ -6,7 +6,7 @@ import { OpenAILLMClient } from "./openai-adapter.js";
 
 const clientCache = new Map<string, LLMClient>();
 const DEFAULT_PROVIDER: LLMProvider = "googleai";
-const DEFAULT_MODEL: LLMModel = "gemini-3.1-flash-lite-preview";
+const DEFAULT_MODEL: LLMModel = "gemini-3.5-flash-lite";
 const SUPPORTED_PROVIDERS: readonly LLMProvider[] = [
   "openai",
   "googleai",
@@ -51,18 +51,18 @@ function createGeminiClient(model: string): LLMClient | undefined {
 }
 
 export function createLLMClientFromEnv(
-  overrides?: Partial<{ provider: LLMProvider; model: string }>
+  overrides?: Partial<{ provider: LLMProvider; model: string }>,
 ): LLMClient {
   const requestedProvider = overrides?.provider;
   const provider = SUPPORTED_PROVIDERS.includes(
-    requestedProvider as LLMProvider
+    requestedProvider as LLMProvider,
   )
     ? requestedProvider!
     : DEFAULT_PROVIDER;
 
   if (requestedProvider && provider !== requestedProvider) {
     console.warn(
-      `Unsupported LLM provider "${requestedProvider}". Falling back to default "${DEFAULT_PROVIDER}".`
+      `Unsupported LLM provider "${requestedProvider}". Falling back to default "${DEFAULT_PROVIDER}".`,
     );
   }
 

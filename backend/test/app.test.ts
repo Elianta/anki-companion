@@ -47,7 +47,7 @@ const createMockLLMClient = (
   overrides: Partial<LLMClient> & {
     translationResult?: unknown;
     cardResult?: unknown;
-  } = {}
+  } = {},
 ): LLMClient => {
   const translate =
     overrides.translate ??
@@ -55,14 +55,14 @@ const createMockLLMClient = (
       .fn()
       .mockResolvedValue(
         (overrides.translationResult ??
-          translationEntry) as SimpleTranslationEntry
+          translationEntry) as SimpleTranslationEntry,
       ) as LLMClient["translate"]);
   const generateCard =
     overrides.generateCard ??
     (vi
       .fn()
       .mockResolvedValue(
-        (overrides.cardResult ?? baseCard) as GeneratedCard
+        (overrides.cardResult ?? baseCard) as GeneratedCard,
       ) as LLMClient["generateCard"]);
 
   return { translate, generateCard };
@@ -83,7 +83,7 @@ type MockOpenAIClient = OpenAIClient & {
 };
 
 const createMockOpenAI = (
-  completion = mockCompletionResponse
+  completion = mockCompletionResponse,
 ): MockOpenAIClient => {
   const create = vi.fn().mockResolvedValue(completion);
   return {
@@ -124,7 +124,7 @@ describe("createApp", () => {
       rawInput: "zamek",
       sourceLanguage: "pl",
       llmProvider: "openai",
-      llmModel: "gpt-4.1-mini",
+      llmModel: "gpt-5.6-luna",
     });
 
     expect(res.status).toBe(500);
@@ -140,13 +140,13 @@ describe("createApp", () => {
       rawInput: translationEntry.raw_input,
       sourceLanguage: "pl",
       llmProvider: "openai",
-      llmModel: "gpt-4.1-mini",
+      llmModel: "gpt-5.6-luna",
     });
 
     expect(res.status).toBe(200);
     expect(llmClientFactory).toHaveBeenCalledWith({
       provider: "openai",
-      model: "gpt-4.1-mini",
+      model: "gpt-5.6-luna",
     });
     expect(llmClient.translate).toHaveBeenCalledWith({
       rawInput: translationEntry.raw_input,
@@ -196,7 +196,7 @@ describe("createApp", () => {
           sense: { id: "sense-1", translationRU: "замок" },
         },
         llmProvider: "openai",
-        llmModel: "gpt-4.1-mini",
+        llmModel: "gpt-5.6-luna",
       });
 
     expect(res.status).toBe(500);
@@ -222,7 +222,7 @@ describe("createApp", () => {
           },
         },
         llmProvider: "openai",
-        llmModel: "gpt-4.1-mini",
+        llmModel: "gpt-5.6-luna",
       });
 
     expect(res.status).toBe(200);
@@ -260,13 +260,13 @@ describe("createApp", () => {
           sense: { id: "sense-1", translationRU: "замок" },
         },
         llmProvider: "googleai",
-        llmModel: "gemini-3.1-flash-lite-preview",
+        llmModel: "gemini-3.5-flash-lite",
       });
 
     expect(res.status).toBe(500);
     expect(llmClientFactory).toHaveBeenCalledWith({
       provider: "googleai",
-      model: "gemini-3.1-flash-lite-preview",
+      model: "gemini-3.5-flash-lite",
     });
     expect(res.body.error).toMatch(/card failure/i);
   });
@@ -302,7 +302,7 @@ describe("OpenAILLMClient", () => {
     expect(payload.model).toBe("gpt-test");
     expect(payload.temperature).toBe(0.2);
     expect(payload.response_format?.json_schema?.name).toBe(
-      "simple_translation_entry_pl"
+      "simple_translation_entry_pl",
     );
     expect(payload.messages?.[0]?.role).toBe("system");
     expect(payload.messages?.[1]).toEqual({
@@ -359,7 +359,35 @@ describe("OpenAILLMClient", () => {
     });
 
     await expect(
-      adapter.translate({ rawInput: "zamek", sourceLanguage: "pl" })
+      adapter.translate({ rawInput: "zamek", sourceLanguage: "pl" }),
     ).rejects.toThrow(/Unable to parse OpenAI response/i);
+  });
+
+  it("uses default temperature 1 for models that require it (e.g. gpt-5.6-luna)", async () => {
+    const openaiClient = createMockOpenAI({
+      ...mockCompletionResponse,
+      choices: [
+        {
+          message: {
+            role: "assistant",
+            content: JSON.stringify(translationEntry),
+          },
+        },
+      ],
+    });
+    const adapter = new OpenAILLMClient({
+      client: openaiClient,
+      model: "gpt-5.6-luna",
+    });
+
+    await adapter.translate({
+      rawInput: translationEntry.raw_input,
+      sourceLanguage: "pl",
+    });
+
+    expect(openaiClient.chat.completions.create).toHaveBeenCalledTimes(1);
+    const [payload] = openaiClient.chat.completions.create.mock.calls[0];
+    expect(payload.model).toBe("gpt-5.6-luna");
+    expect(payload.temperature).toBe(1);
   });
 });

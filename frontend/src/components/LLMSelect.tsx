@@ -2,10 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { CheckIcon } from 'lucide-react';
 import { useLLMStore, type LLMModel, type LLMProvider } from '@/stores/llm';
 import { Button } from '@/components/ui/button';
-import {
-  getProviderIcon,
-  getProviderLabel,
-} from '@/components/icons/llmProviderMeta';
+import { getProviderIcon, getProviderLabel } from '@/components/icons/llmProviderMeta';
 import {
   Drawer,
   DrawerClose,
@@ -36,16 +33,22 @@ type LLMOption = {
 
 const OPTIONS: LLMOption[] = [
   {
-    value: 'googleai:gemini-3.1-flash-lite-preview',
-    label: 'Gemini 3.1 Flash Lite',
+    value: 'googleai:gemini-3.5-flash-lite',
+    label: 'Gemini 3.5 Flash Lite',
     provider: 'googleai',
-    model: 'gemini-3.1-flash-lite-preview',
+    model: 'gemini-3.5-flash-lite',
   },
   {
-    value: 'openai:gpt-4.1-mini',
-    label: 'GPT-4.1 Mini',
+    value: 'googleai:gemini-3.8-flash',
+    label: 'Gemini 3.8 Flash',
+    provider: 'googleai',
+    model: 'gemini-3.8-flash',
+  },
+  {
+    value: 'openai:gpt-5.6-luna',
+    label: 'GPT-5.6 Luna',
     provider: 'openai',
-    model: 'gpt-4.1-mini',
+    model: 'gpt-5.6-luna',
   },
 ];
 

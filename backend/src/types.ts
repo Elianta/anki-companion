@@ -16,8 +16,9 @@ export const LLM_PROVIDERS = ["googleai", "openai"] as const;
 export type LLMProvider = (typeof LLM_PROVIDERS)[number];
 
 export const LLM_MODELS = [
-  "gpt-4.1-mini",
-  "gemini-3.1-flash-lite-preview",
+  "gpt-5.6-luna",
+  "gemini-3.5-flash-lite",
+  "gemini-3.8-flash",
 ] as const;
 export type LLMModel = (typeof LLM_MODELS)[number];
 
@@ -35,7 +36,7 @@ export type OpenAIClient = {
   chat: {
     completions: {
       create: (
-        params: ChatCompletionCreateParamsNonStreaming
+        params: ChatCompletionCreateParamsNonStreaming,
       ) => Promise<ChatCompletion>;
     };
   };
@@ -44,7 +45,7 @@ export type OpenAIClient = {
 export type GeminiClient = {
   models: {
     generateContent: (
-      params: GenerateContentParameters
+      params: GenerateContentParameters,
     ) => Promise<GenerateContentResponse>;
   };
 };
