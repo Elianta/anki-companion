@@ -52,6 +52,7 @@ export type GeneratedCard = {
   fields: Record<string, unknown>;
   schemaName: string;
   generatedAt: string;
+  model?: string;
 };
 
 const buildCardSystemPrompt = (noteType: DraftNoteType, guidance: string) => {

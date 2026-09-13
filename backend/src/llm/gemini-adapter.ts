@@ -62,7 +62,7 @@ export class GeminiLLMClient implements LLMClient {
   }: TranslationRequest): Promise<SimpleTranslationEntry> {
     const { systemPrompt, userPrompt, jsonSchema } = buildTranslationPrompt(
       rawInput,
-      sourceLanguage
+      sourceLanguage,
     );
 
     const result = await this.client.models.generateContent({
@@ -97,6 +97,9 @@ export class GeminiLLMClient implements LLMClient {
     });
 
     const content = ensureContent(result);
-    return parseGeminiCard(draft, content);
+    return {
+      ...parseGeminiCard(draft, content),
+      model: this.model,
+    };
   }
 }

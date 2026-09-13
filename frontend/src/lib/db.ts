@@ -14,6 +14,7 @@ export type GeneratedCard = {
   fields: Record<string, any>;
   schemaName: string;
   generatedAt: string;
+  model?: string;
 };
 
 export type DraftEntry = {

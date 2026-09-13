@@ -26,9 +26,11 @@ import { formatRateLimitMessage, isRateLimitError } from '@/services/api';
 import { createExportGroupFromDrafts } from '@/services/export-storage';
 import { CardEditorButton } from '@/components/drafts/CardEditorButton';
 import { useDraftCountStore } from '@/stores/drafts';
+import { useLLMStore } from '@/stores/llm';
 
 export function DraftScreen() {
   const navigate = useNavigate({ from: '/draft' });
+  const currentModel = useLLMStore((state) => state.llmModel);
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -216,7 +218,6 @@ export function DraftScreen() {
                   onCheckedChange={toggleAll}
                   className="h-9 w-9"
                   aria-label="Select all ready drafts"
-                  // data-test-id="select-all-drafts"
                   disabled={!readyDrafts.length}
                 />
                 <p className="text-sm text-slate-800">Select all ready cards</p>
@@ -241,7 +242,6 @@ export function DraftScreen() {
                           onCheckedChange={() => draft.id && toggleDraftSelection(draft.id)}
                           className="h-9 w-9"
                           aria-label={`Select draft ${draft.term}`}
-                          // data-test-id={`select-draft-${draft.id}`}
                         />
                         <div className="flex items-center gap-2">
                           <Select
@@ -253,7 +253,6 @@ export function DraftScreen() {
                           >
                             <SelectTrigger
                               aria-label={`Note type for ${draft.term}`}
-                              // data-test-id={`note-type-${draft.id}`}
                               size="default"
                               className="bg-white"
                             >
@@ -273,17 +272,18 @@ export function DraftScreen() {
                               onSave={refreshDraft}
                               disabled={isExported}
                             />
-                          ) : (
+                          ) : null}
+                          {(!draft.card || draft.card.model !== currentModel) && (
                             <div className="relative">
                               <Button
                                 type="button"
                                 variant="outline"
                                 size="icon"
                                 className="text-slate-700"
-                                aria-label="Generate card"
+                                aria-label={draft.card ? 'Regenerate card' : 'Generate card'}
                                 data-test-id={`card-pending-${draft.id}`}
                                 onClick={() => draft.id && triggerCardGeneration(draft.id)}
-                                disabled={generatingIds.has(draft.id ?? -1)}
+                                disabled={isExported || generatingIds.has(draft.id ?? -1)}
                               >
                                 <RefreshCwIcon
                                   className={cn(
@@ -296,18 +296,12 @@ export function DraftScreen() {
                             </div>
                           )}
                         </div>
-                        {/* {isExported ? (
-                          <Badge variant="outline" data-test-id={`exported-badge-${draft.id}`}>
-                            Exported
-                          </Badge>
-                        ) : null} */}
                         <Button
                           type="button"
                           variant="outline"
                           size="icon"
                           className="ml-auto text-slate-600"
                           onClick={() => draft.id && handleRemove(draft.id)}
-                          // data-test-id={`remove-draft-${draft.id}`}
                           aria-label={`Delete draft ${draft.term}`}
                         >
                           <Trash2Icon className="h-4 w-4" />
@@ -341,7 +335,6 @@ export function DraftScreen() {
               type="button"
               onClick={handleExport}
               disabled={isExporting || selectedCount === 0}
-              // data-test-id="export-button"
               aria-label="Export selected drafts"
             >
               {isExporting ? 'Exporting…' : 'Export selected'}

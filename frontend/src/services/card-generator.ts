@@ -10,6 +10,7 @@ const generatedCardSchema = z.object({
   fields: z.record(z.string(), z.unknown()),
   schemaName: z.string(),
   generatedAt: z.string(),
+  model: z.string().optional(),
 });
 
 export async function generateCardPayload({

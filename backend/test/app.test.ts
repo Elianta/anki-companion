@@ -41,6 +41,7 @@ const baseCard: GeneratedCard = {
   fields: cardFields,
   schemaName: "pl_default_note",
   generatedAt: "2024-01-01T00:00:00.000Z",
+  model: "gpt-5.6-luna",
 };
 
 const createMockLLMClient = (
@@ -345,6 +346,7 @@ describe("OpenAILLMClient", () => {
       noteType: "PL: Default",
       fields: cardFields,
       schemaName: "pl_default_note",
+      model: "gpt-test",
     });
   });
 

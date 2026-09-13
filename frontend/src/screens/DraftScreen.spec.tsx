@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -8,6 +8,7 @@ import * as draftStorage from '@/services/draft-storage';
 import * as exportStorage from '@/services/export-storage';
 import type { DraftEntry } from '@/lib/db';
 import { toast } from 'sonner';
+import { useLLMStore, DEFAULT_LLM_MODEL, DEFAULT_LLM_PROVIDER } from '@/stores/llm';
 
 const navigateMock = vi.fn();
 vi.mock('@tanstack/react-router', () => ({
@@ -28,6 +29,7 @@ vi.mock('@/services/card-generator', () => ({
     ...mockCardPayload,
     noteType: draft.noteType,
     generatedAt: '2024-01-01T00:00:00.000Z',
+    model: useLLMStore.getState().llmModel,
   })),
 }));
 
@@ -75,6 +77,8 @@ const renderScreen = () => {
     draftCheckbox: (term: string) => screen.findByLabelText(`Select draft ${term}`),
     noteTypeTrigger: (term: string) => screen.findByLabelText(`Note type for ${term}`),
     removeButton: (term: string) => screen.findByLabelText(`Delete draft ${term}`),
+    cardPendingButton: (id: number | string) => screen.findByTestId(`card-pending-${id}`),
+    cardReadyButton: (id: number | string) => screen.findByTestId(`card-ready-${id}`),
   };
 };
 
@@ -87,6 +91,7 @@ describe('DraftScreen', () => {
 
   beforeEach(async () => {
     user = userEvent.setup();
+    useLLMStore.setState({ llmProvider: DEFAULT_LLM_PROVIDER, llmModel: DEFAULT_LLM_MODEL });
     await draftStorage.clearDrafts();
     await exportStorage.clearExportGroups();
     vi.clearAllMocks();
@@ -260,5 +265,55 @@ describe('DraftScreen', () => {
       expect(toastErrorMock).toHaveBeenCalledWith(expect.stringMatching(/Export failed/i)),
     );
     expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it('shows refresh button alongside edit button when card model differs from current LLM model', async () => {
+    // Seed draft with default model
+    const draftId = await seedDraft({
+      term: 'jabłko',
+      language: 'PL',
+      sense: { id: 'pl-jabłko', translationRU: 'яблоко', partOfSpeech: 'noun' },
+    });
+
+    const { cardPendingButton, cardReadyButton } = renderScreen();
+
+    // Initially, card model matches current model: ready button exists, pending/refresh button does not
+    expect(await cardReadyButton(draftId)).toBeInTheDocument();
+    expect(screen.queryByTestId(`card-pending-${draftId}`)).not.toBeInTheDocument();
+
+    // Change current LLM model to a different one
+    act(() => {
+      useLLMStore.setState({ llmModel: 'gpt-5.6-luna' });
+    });
+
+    // Refresh button should now appear alongside the ready button
+    expect(await cardPendingButton(draftId)).toBeInTheDocument();
+    expect(await cardReadyButton(draftId)).toBeInTheDocument();
+  });
+
+  it('regenerates card and hides refresh button when refresh is clicked after model change', async () => {
+    const draftId = await seedDraft({
+      term: 'jabłko',
+      language: 'PL',
+      sense: { id: 'pl-jabłko', translationRU: 'яблоко', partOfSpeech: 'noun' },
+    });
+
+    // Switch model to Luna
+    act(() => {
+      useLLMStore.setState({ llmModel: 'gpt-5.6-luna' });
+    });
+
+    const { cardPendingButton } = renderScreen();
+    const refreshBtn = await cardPendingButton(draftId);
+    expect(refreshBtn).toBeInTheDocument();
+
+    // Click refresh button
+    await user.click(refreshBtn);
+
+    // Card should be regenerated with new model and refresh button should disappear
+    await waitFor(() => {
+      expect(generateCardForDraftMock).toHaveBeenCalledWith(draftId);
+      expect(screen.queryByTestId(`card-pending-${draftId}`)).not.toBeInTheDocument();
+    });
   });
 });

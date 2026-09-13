@@ -40,6 +40,7 @@ describe('generateCardPayload (backend API)', () => {
       fields: { Word: 'zamek', Translation: 'замок' },
       schemaName: 'pl_default_note',
       generatedAt: '2024-01-01T00:00:00.000Z',
+      model: DEFAULT_LLM_MODEL,
     };
 
     fetchMock.mockResolvedValue({

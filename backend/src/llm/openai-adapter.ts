@@ -107,6 +107,9 @@ export class OpenAILLMClient implements LLMClient {
     });
 
     const content = ensureContent(completion);
-    return parseCardContent(draft, content);
+    return {
+      ...parseCardContent(draft, content),
+      model: this.model,
+    };
   }
 }
