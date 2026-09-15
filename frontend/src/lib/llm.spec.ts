@@ -35,14 +35,18 @@ describe('disambiguate', () => {
   const fetchEnglishMock = vi.mocked(fetchEnglishTranslations);
 
   beforeEach(() => {
+    vi.useRealTimers();
     fetchPolishMock.mockReset();
     fetchEnglishMock.mockReset();
   });
 
   it('uses fetchPolishTranslations when langPair === "PL" and returns correctly shaped result', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-15T12:00:00.000Z'));
     fetchPolishMock.mockResolvedValue(mockEntry);
 
     const result = await disambiguate(mockEntry.raw_input, 'PL');
+    const expectedTimestamp = new Date('2026-09-15T12:00:00.000Z').getTime();
 
     // correct function called
     expect(fetchPolishMock).toHaveBeenCalledTimes(1);
@@ -59,7 +63,7 @@ describe('disambiguate', () => {
 
     result.senses.forEach((sense, index) => {
       expect(typeof sense.id).toBe('string');
-      expect(sense.id).toBe(`${mockEntry.source_word}-${index + 1}`);
+      expect(sense.id).toBe(`${mockEntry.source_word}-${expectedTimestamp}-${index + 1}`);
       expect(typeof sense.translationRU).toBe('string');
 
       const originalSense = mockEntry.senses![index];
@@ -71,6 +75,8 @@ describe('disambiguate', () => {
   });
 
   it('uses fetchEnglishTranslations when langPair === "EN" and returns correctly shaped result', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-15T12:30:00.000Z'));
     const entry = {
       ...mockEntry,
       raw_input: 'lock',
@@ -90,6 +96,7 @@ describe('disambiguate', () => {
     fetchEnglishMock.mockResolvedValue(entry);
 
     const result = await disambiguate(entry.raw_input, 'EN');
+    const expectedTimestamp = new Date('2026-09-15T12:30:00.000Z').getTime();
 
     // correct function called
     expect(fetchEnglishMock).toHaveBeenCalledTimes(1);
@@ -103,7 +110,7 @@ describe('disambiguate', () => {
 
     const [sense] = result.senses;
     expect(typeof sense.id).toBe('string');
-    expect(sense.id).toBe(`${entry.source_word}-1`);
+    expect(sense.id).toBe(`${entry.source_word}-${expectedTimestamp}-1`);
     expect(typeof sense.translationRU).toBe('string');
     expect(sense.translationRU).toBe(entry.senses[0]!.translation);
     expect(typeof sense.notes).toBe('string');
@@ -120,5 +127,18 @@ describe('disambiguate', () => {
     expect(result.term).toBe(entry.source_word);
     expect(Array.isArray(result.senses)).toBe(true);
     expect(result.senses).toHaveLength(0);
+  });
+
+  it('generates different sense ids for repeated lookups of the same word', async () => {
+    vi.useFakeTimers();
+    fetchPolishMock.mockResolvedValue(mockEntry);
+
+    vi.setSystemTime(new Date('2026-09-15T12:00:00.000Z'));
+    const first = await disambiguate(mockEntry.raw_input, 'PL');
+
+    vi.setSystemTime(new Date('2026-09-15T12:00:01.000Z'));
+    const second = await disambiguate(mockEntry.raw_input, 'PL');
+
+    expect(first.senses[0]?.id).not.toBe(second.senses[0]?.id);
   });
 });

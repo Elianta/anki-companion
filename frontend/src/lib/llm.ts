@@ -55,19 +55,23 @@ const buildExamples = (sense: SimpleTranslationEntry['senses'][number]): string[
 const mapEntryToResult = (
   entry: SimpleTranslationEntry,
   langPair: LangPair,
-): DisambiguateResult => ({
-  term: entry.source_word,
-  langPair,
-  senses: (entry.senses ?? []).map((sense, index) => ({
-    id: `${entry.source_word}-${index + 1}`,
-    translationRU: sense.translation,
-    notes: sense.sense_note || undefined,
-    partOfSpeech: sense.part_of_speech || undefined,
-    usageLevel: sense.usage_frequency_level,
-    frequencyNotes: buildFrequencyNotes(sense),
-    examples: buildExamples(sense),
-  })),
-});
+) => {
+  const lookupTimestamp = Date.now();
+
+  return {
+    term: entry.source_word,
+    langPair,
+    senses: (entry.senses ?? []).map((sense, index) => ({
+      id: `${entry.source_word}-${lookupTimestamp}-${index + 1}`,
+      translationRU: sense.translation,
+      notes: sense.sense_note || undefined,
+      partOfSpeech: sense.part_of_speech || undefined,
+      usageLevel: sense.usage_frequency_level,
+      frequencyNotes: buildFrequencyNotes(sense),
+      examples: buildExamples(sense),
+    })),
+  };
+};
 
 export async function disambiguate(term: string, langPair: LangPair): Promise<DisambiguateResult> {
   if (langPair === 'PL') {
