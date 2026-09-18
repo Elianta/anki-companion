@@ -95,8 +95,6 @@ const PL_VERB_FIELDS: FieldMap = {
   Verb: stringField("Original Polish verb or chunk."),
   Definition: stringField("Polish definition matching the sense."),
   Translation: stringField("Russian translation of the verb."),
-  Aspekt: stringField("Aspect: 'dokonany' or 'niedokonany'."),
-  ParaAspektowa: stringField("Aspectual pair infinitive, or empty string."),
   FormJa: stringField("Present (ndk) or simple future (dk), 1sg (ja)."),
   ExampleFormJa: stringField("Sentence using FormJa."),
   FormTy: stringField("Present (ndk) or simple future (dk), 2sg (ty)."),
@@ -133,6 +131,8 @@ const PL_VERB_FIELDS: FieldMap = {
   ExampleFormZWyPrzeszly: stringField("Sentence using FormZWyPrzeszly."),
   FormZOnePrzeszly: stringField("Past tense, feminine 3pl (one)."),
   ExampleFormZOnePrzeszly: stringField("Sentence using FormZOnePrzeszly."),
+  Aspekt: stringField("Aspect: 'dokonany' or 'niedokonany'."),
+  ParaAspektowa: stringField("Aspectual pair infinitive, or empty string."),
 };
 
 const PL_NOUNS_FIELDS: FieldMap = {
