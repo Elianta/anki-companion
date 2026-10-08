@@ -4,8 +4,14 @@ import { useNavigate } from '@tanstack/react-router';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ValueSelect } from '@/components/ValueSelect';
+import type { DraftNoteType } from '@/lib/db';
 import { cn } from '@/lib/utils';
-import { saveDraftFromSense } from '@/services/draft-storage';
+import {
+  getDefaultNoteType,
+  getNoteTypesForLanguage,
+  saveDraftFromSense,
+} from '@/services/draft-storage';
 import { formatRateLimitMessage, isRateLimitError } from '@/services/api';
 import { useSessionStore } from '@/stores/session';
 import { toast } from 'sonner';
@@ -15,13 +21,16 @@ export function SensesScreen() {
   const senses = useSessionStore((state) => state.senses);
   const term = useSessionStore((state) => state.term);
   const language = useSessionStore((state) => state.language);
+  const noteTypes = getNoteTypesForLanguage(language);
+  const [noteType, setNoteType] = useState<DraftNoteType>(getDefaultNoteType(language));
   const [selectedSenseId, setSelectedSenseId] = useState<string | null>(senses[0]?.id ?? null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setSelectedSenseId(senses[0]?.id ?? null);
-  }, [senses]);
+    setNoteType(getDefaultNoteType(language));
+  }, [senses, language]);
 
   const selectedSense = useMemo(
     () => senses.find((sense) => sense.id === selectedSenseId),
@@ -36,7 +45,7 @@ export function SensesScreen() {
     setError(null);
     try {
       await saveDraftFromSense(
-        { sense: selectedSense, term, language },
+        { sense: selectedSense, term, language, noteType },
         { backgroundGenerate: true },
       );
       toast.success('Draft saved. Generating card in the background.');
@@ -137,6 +146,13 @@ export function SensesScreen() {
             </CardContent>
             <CardContent className="border-t border-slate-200 pt-6">
               <div className="flex flex-wrap items-center gap-3">
+                <ValueSelect
+                  values={noteTypes}
+                  value={noteType}
+                  onValueChange={setNoteType}
+                  disabled={isSaving || noteTypes.length === 1}
+                  aria-label="Note type"
+                />
                 {error ? <p className="text-sm text-destructive">{error}</p> : null}
                 <div className="ml-auto flex flex-wrap gap-2">
                   <Button

@@ -13,7 +13,8 @@ vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => navigateMock,
 }));
 
-vi.mock('@/services/draft-storage', () => ({
+vi.mock('@/services/draft-storage', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/services/draft-storage')>()),
   saveDraftFromSense: vi.fn(),
 }));
 
@@ -139,6 +140,7 @@ describe('SensesScreen', () => {
           sense: expect.objectContaining({ id: 'b' }),
           term: 'test',
           language: 'EN',
+          noteType: 'EN: Default',
         },
         { backgroundGenerate: true },
       );
@@ -148,6 +150,42 @@ describe('SensesScreen', () => {
     expect(toastErrorMock).not.toHaveBeenCalled();
     expect(navigateMock).toHaveBeenCalledWith({ to: '/' });
   });
+
+  it('shows the only English note type as disabled', () => {
+    renderScreen();
+
+    const noteTypeSelect = screen.getByRole('combobox', { name: 'Note type' });
+    expect(screen.queryByText('Note type')).not.toBeInTheDocument();
+    expect(noteTypeSelect).toHaveTextContent('EN: Default');
+    expect(noteTypeSelect).toBeDisabled();
+  });
+
+  it.each(['PL: Default', 'PL: Verbs', 'PL: Nouns', 'PL: Verbs Inf'])(
+    'saves the selected Polish note type %s before background generation',
+    async (noteType) => {
+      const { saveButton, senseOption } = renderScreen({ language: 'PL' });
+      const noteTypeSelect = screen.getByRole('combobox', { name: 'Note type' });
+      expect(noteTypeSelect).toHaveTextContent('PL: Default');
+
+      await user.click(noteTypeSelect);
+      await user.click(await screen.findByRole('option', { name: noteType }));
+      await user.click(senseOption('b'));
+      await user.click(saveButton());
+
+      await waitFor(() => {
+        expect(saveDraftMock).toHaveBeenCalledWith(
+          {
+            sense: expect.objectContaining({ id: 'b' }),
+            term: 'test',
+            language: 'PL',
+            noteType,
+          },
+          { backgroundGenerate: true },
+        );
+      });
+      expect(navigateMock).toHaveBeenCalledWith({ to: '/' });
+    },
+  );
 
   it('shows error and does not navigate when save fails', async () => {
     saveDraftMock.mockRejectedValueOnce(new Error('boom'));

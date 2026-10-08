@@ -20,6 +20,7 @@ type SaveDraftParams = {
   sense: Sense;
   term: string;
   language: LangPair;
+  noteType?: DraftNoteType;
 };
 
 type SaveDraftOptions = {
@@ -38,14 +39,18 @@ const maybeGenerateCard = async (draftId: number, background: boolean) => {
 };
 
 export async function saveDraftFromSense(
-  { sense, term, language }: SaveDraftParams,
+  { sense, term, language, noteType = getDefaultNoteType(language) }: SaveDraftParams,
   { backgroundGenerate = false }: SaveDraftOptions = {},
 ) {
+  if (!getNoteTypesForLanguage(language).includes(noteType)) {
+    throw new Error(`Unsupported note type for ${language}: ${noteType}`);
+  }
+
   const baseEntry: DraftEntry = {
     senseId: sense.id,
     term,
     language,
-    noteType: getDefaultNoteType(language),
+    noteType,
     sense,
     card: null,
     exported: false,
@@ -55,7 +60,7 @@ export async function saveDraftFromSense(
   const existing = await db.drafts
     .where('senseId')
     .equals(sense.id)
-    .filter((entry) => entry.language === language)
+    .filter((entry) => entry.language === language && entry.noteType === noteType)
     .first();
 
   if (existing) {

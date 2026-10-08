@@ -6,13 +6,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { ValueSelect } from '@/components/ValueSelect';
 import { cn } from '@/lib/utils';
 import type { DraftEntry, DraftNoteType } from '@/lib/db';
 import {
@@ -244,28 +238,15 @@ export function DraftScreen() {
                           aria-label={`Select draft ${draft.term}`}
                         />
                         <div className="flex items-center gap-2">
-                          <Select
+                          <ValueSelect
+                            values={noteTypes}
                             value={draft.noteType}
                             onValueChange={(value) =>
-                              draft.id && handleNoteTypeChange(draft.id, value as DraftNoteType)
+                              draft.id && handleNoteTypeChange(draft.id, value)
                             }
                             disabled={isExported || noteTypes.length === 1}
-                          >
-                            <SelectTrigger
-                              aria-label={`Note type for ${draft.term}`}
-                              size="default"
-                              className="bg-white"
-                            >
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {noteTypes.map((noteType) => (
-                                <SelectItem key={noteType} value={noteType}>
-                                  {noteType}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            aria-label={`Note type for ${draft.term}`}
+                          />
                           {draft.card ? (
                             <CardEditorButton
                               draft={draft}
