@@ -206,7 +206,7 @@ export function DraftScreen() {
 
           {hasDrafts && (
             <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-2 sm:p-4">
                 <Checkbox
                   checked={isAllSelected}
                   onCheckedChange={toggleAll}
@@ -227,7 +227,7 @@ export function DraftScreen() {
                     <div
                       key={draft.id}
                       data-test-id={`draft-item-${draft.id}`}
-                      className="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-xs"
+                      className="rounded-xl border border-slate-200 bg-slate-50 p-2 shadow-xs sm:p-4"
                     >
                       <div className="flex flex-wrap items-start gap-2">
                         <Checkbox

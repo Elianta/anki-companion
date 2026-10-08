@@ -104,7 +104,7 @@ export function SensesScreen() {
                       }
                     }}
                     className={cn(
-                      'cursor-pointer rounded-xl border border-slate-200 bg-white p-4 transition hover:border-slate-300',
+                      'cursor-pointer rounded-xl border border-slate-200 bg-white p-2 transition hover:border-slate-300 sm:p-4',
                       isSelected && 'border-primary/50 bg-primary/5 shadow-lg shadow-primary/10',
                     )}
                   >
