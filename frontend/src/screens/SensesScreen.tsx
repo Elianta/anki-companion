@@ -117,7 +117,7 @@ export function SensesScreen() {
                           {sense.partOfSpeech}
                         </Badge>
                       ) : null}
-                      <Badge variant={isSelected ? 'default' : 'secondary'}>
+                      <Badge className="ml-auto" variant={isSelected ? 'default' : 'secondary'}>
                         {isSelected ? 'Selected' : 'Candidate'}
                       </Badge>
                     </div>
@@ -145,8 +145,9 @@ export function SensesScreen() {
               })}
             </CardContent>
             <CardContent className="border-t border-slate-200 pt-6">
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                 <ValueSelect
+                  className="h-11 w-full sm:h-9 sm:w-auto"
                   values={noteTypes}
                   value={noteType}
                   onValueChange={setNoteType}
@@ -154,23 +155,23 @@ export function SensesScreen() {
                   aria-label="Note type"
                 />
                 {error ? <p className="text-sm text-destructive">{error}</p> : null}
-                <div className="ml-auto flex flex-wrap gap-2">
+                <div className="flex w-full flex-col gap-2 sm:ml-auto sm:w-auto sm:flex-row-reverse">
                   <Button
-                    className="cursor-pointer"
-                    type="button"
-                    variant="outline"
-                    onClick={() => navigate({ to: '/' })}
-                  >
-                    Back to search
-                  </Button>
-                  <Button
+                    className="h-11 w-full cursor-pointer sm:h-9 sm:w-auto"
                     type="button"
                     onClick={handleSaveDraft}
-                    className="cursor-pointer"
                     disabled={isSaving || !selectedSense}
                     data-test-id="save-draft-button"
                   >
                     Save to draft
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => navigate({ to: '/' })}
+                    className="h-11 w-full cursor-pointer sm:h-9 sm:w-auto"
+                  >
+                    Back to search
                   </Button>
                 </div>
               </div>
