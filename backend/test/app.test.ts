@@ -28,11 +28,11 @@ const cardFields = {
   Definition: "drzwiowy mechanizm zamykający",
   Translation: "замок",
   Example1: "Zamknij zamek.",
-  Example1Spaces: "Zamknij _____",
+  Example1Spaces: "Zamknij _____.",
   Example1RU: "Закрой замок.",
-  Example2: "Zamek был zepsuty.",
-  Example2Spaces: "_____ был zepsuty.",
-  Example2RU: "Замок был сломан.",
+  Example2: "Nie mogę otworzyć drzwi, bo klucz utknął w zamku.",
+  Example2Spaces: "Nie mogę otworzyć drzwi, bo klucz utknął w _____.",
+  Example2RU: "Не могу открыть дверь, потому что ключ застрял в замке.",
   Synonym: "",
 };
 

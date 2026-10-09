@@ -80,10 +80,10 @@ const PL_DEFAULT_FIELDS: FieldMap = {
   ),
   Example1RU: stringField("Russian translation of Example1."),
   Example2: stringField(
-    "Another Polish sentence with the same constraints as Example1.",
+    "Another Polish sentence expressing the same sense. If the source word is a verb, use its first-person singular (ja) form, preferably in the present tense; use past tense if present is unavailable or unsuitable for the sense or context. For a perfective verb, use past tense, not simple future. Otherwise, use any grammatically appropriate form of the source word or phrase.",
   ),
   Example2Spaces: stringField(
-    "Example2 with the lemma replaced by underscores (one underscore per character, split groups for phrases).",
+    "Example2 with the actual form of the source word or phrase used in the sentence replaced by underscores (one underscore per character of that form, split groups for phrases).",
   ),
   Example2RU: stringField("Russian translation of Example2."),
   Synonym: stringField(
@@ -270,14 +270,9 @@ export const CARD_SCHEMAS: Record<DraftNoteType, CardSchemaDefinition> = {
     Use ONLY the given context (Source word, Language, Sense translation (Ru), Sense note, Part of speech). Mirror its meaning in every field. If any required value cannot be supported without guessing, output the safest allowed empty value (e.g., empty string or empty array).
     ${EXAMPLE_SENTENCE_GUIDANCE}
     TASK
-    1) Create EXACTLY TWO natural Polish example sentences that unambiguously express THIS sense of the Source word.
-    2) For EACH example, also provide:
-      - A faithful Russian translation of the example sentence.
-      - A masked variant where EVERY standalone occurrence of the exact Source word string is replaced with underscores.
-        • Use one underscore per character in Source word.
-        • If the Source word contains multiple words, mask each word separately and keep single spaces between them (e.g., "Masz rację" → "____ _____").
-        • Preserve all punctuation and spacing outside the masked tokens.
-    3) Additionally provide sense-appropriate Polish synonyms (if safely available).
+    1) Create exactly two natural Polish sentences for this sense: Example1 uses the supplied lemma (infinitive for verbs); Example2 uses any grammatical form, but verbs MUST be first-person singular (ja), preferably present tense; use past if present is unavailable or unsuitable for the sense or context. Preserve aspect and appropriate past-tense gender. Perfective verbs MUST use past tense.
+    2) For each, provide a faithful Russian translation and mask every occurrence of the actual source-word/phrase form with one underscore per character, masking words separately and preserving all spacing and punctuation.
+    3) Provide sense-appropriate Polish synonyms if safely available.
     Output MUST be valid JSON ONLY, matching exactly requested schema. No prose, no markdown.`,
     PL_DEFAULT_FIELDS,
   ),
