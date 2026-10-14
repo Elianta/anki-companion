@@ -1,17 +1,11 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { SensesScreen } from './SensesScreen';
-import { useSessionStore, createSessionSnapshot } from '@/stores/session';
+import { SensesResults } from './SensesResults';
 import type { Sense } from '@/lib/llm';
 import { saveDraftFromSense } from '@/services/draft-storage';
 import { toast } from 'sonner';
-
-const navigateMock = vi.fn();
-vi.mock('@tanstack/react-router', () => ({
-  useNavigate: () => navigateMock,
-}));
 
 vi.mock('@/services/draft-storage', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/services/draft-storage')>()),
@@ -55,36 +49,28 @@ const renderScreen = ({
   term?: string;
   language?: 'EN' | 'PL';
 } = {}) => {
-  useSessionStore.setState({
-    ...createSessionSnapshot(),
-    senses,
-    term,
-    language,
-  });
-
-  render(<SensesScreen />);
+  render(<SensesResults term={term} senses={senses} language={language} />);
 
   return {
     saveButton: () => screen.getByRole('button', { name: /save to draft/i }),
-    senseOption: (id: string) => screen.getByLabelText(`sense-${id}`),
+    senseOption: (id: string) =>
+      screen.getByRole('option', { name: id === 'a' ? 'first translation' : 'second translation' }),
   };
 };
 
 const expectSelectedSense = (id: string, isSelected: boolean) => {
-  expect(screen.getByLabelText(`sense-${id}`)).toHaveAttribute(
-    'aria-selected',
-    isSelected ? 'true' : 'false',
-  );
+  expect(
+    screen.getByRole('option', { name: id === 'a' ? 'first translation' : 'second translation' }),
+  ).toHaveAttribute('aria-selected', isSelected ? 'true' : 'false');
 };
 
 let user: ReturnType<typeof userEvent.setup>;
 
-describe('SensesScreen', () => {
+describe('SensesResults', () => {
   const saveDraftMock = vi.mocked(saveDraftFromSense);
 
   beforeEach(() => {
     user = userEvent.setup();
-    navigateMock.mockReset();
     saveDraftMock.mockReset();
     saveDraftMock.mockResolvedValue(1);
     toastErrorMock.mockReset();
@@ -96,19 +82,19 @@ describe('SensesScreen', () => {
 
     expect(screen.getByText('No senses found for test')).toBeInTheDocument();
     expect(screen.getByText(/Try adjusting your query/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /back to search/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /save to draft/i })).not.toBeInTheDocument();
 
     expect(screen.queryByText(/Possible senses for/i)).not.toBeInTheDocument();
     expect(screen.queryByRole('listbox', { name: /senses list/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('option')).not.toBeInTheDocument();
   });
 
-  it('renders senses from session store', () => {
+  it('renders senses passed through props', () => {
     renderScreen();
 
     expect(screen.getByRole('listbox', { name: /senses list/i })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'sense-a' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'sense-b' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'first translation' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'second translation' })).toBeInTheDocument();
     expect(screen.getByText('Possible senses for test:')).toBeInTheDocument();
     expect(screen.getByText('first translation')).toBeInTheDocument();
     expect(screen.getByText('second translation')).toBeInTheDocument();
@@ -128,7 +114,49 @@ describe('SensesScreen', () => {
     expectSelectedSense('b', true);
   });
 
-  it('saves selected sense to draft and navigates', async () => {
+  it('exposes the actual usage frequency for each sense', () => {
+    renderScreen();
+    expect(screen.getByRole('img', { name: 'Usage frequency: high' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Usage frequency: medium' })).toBeInTheDocument();
+  });
+
+  it('moves selection and focus with arrow keys, Home, and End', async () => {
+    const { senseOption } = renderScreen();
+    senseOption('a').focus();
+    await user.keyboard('{ArrowDown}');
+    expectSelectedSense('b', true);
+    expect(senseOption('b')).toHaveFocus();
+    await user.keyboard('{ArrowDown}');
+    expectSelectedSense('a', true);
+    await user.keyboard('{End}');
+    expectSelectedSense('b', true);
+    await user.keyboard('{Home}');
+    expectSelectedSense('a', true);
+    await user.keyboard('{ArrowUp}');
+    expectSelectedSense('b', true);
+  });
+
+  it('disables saving during persistence and prevents duplicate requests', async () => {
+    let resolveSave!: (id: number) => void;
+    saveDraftMock.mockReturnValue(
+      new Promise((resolve) => {
+        resolveSave = resolve;
+      }),
+    );
+    const { saveButton } = renderScreen({ language: 'PL' });
+    const button = saveButton();
+    await user.click(button);
+    expect(button).toBeDisabled();
+    expect(button).toHaveTextContent('Saving…');
+    expect(screen.getByRole('combobox', { name: 'Note type' })).toBeDisabled();
+    await user.click(button);
+    expect(saveDraftMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => resolveSave(1));
+    expect(button).not.toBeDisabled();
+  });
+
+  it('saves selected sense and keeps results available', async () => {
     const { saveButton, senseOption } = renderScreen();
 
     await user.click(senseOption('b'));
@@ -148,7 +176,7 @@ describe('SensesScreen', () => {
 
     expect(toastSuccessMock).toHaveBeenCalled();
     expect(toastErrorMock).not.toHaveBeenCalled();
-    expect(navigateMock).toHaveBeenCalledWith({ to: '/' });
+    expect(screen.getByRole('listbox', { name: 'Senses list' })).toBeInTheDocument();
   });
 
   it('shows the only English note type as disabled', () => {
@@ -183,11 +211,11 @@ describe('SensesScreen', () => {
           { backgroundGenerate: true },
         );
       });
-      expect(navigateMock).toHaveBeenCalledWith({ to: '/' });
+      expect(screen.getByRole('listbox', { name: 'Senses list' })).toBeInTheDocument();
     },
   );
 
-  it('shows error and does not navigate when save fails', async () => {
+  it('shows an error and keeps the selection when save fails', async () => {
     saveDraftMock.mockRejectedValueOnce(new Error('boom'));
 
     const { saveButton, senseOption } = renderScreen();
@@ -200,7 +228,7 @@ describe('SensesScreen', () => {
     });
 
     expect(screen.getByText(/Failed to save draft/i)).toBeInTheDocument();
-    expect(navigateMock).not.toHaveBeenCalled();
+    expectSelectedSense('b', true);
   });
 
   it('allows selecting a sense with keyboard (Enter/Space)', async () => {

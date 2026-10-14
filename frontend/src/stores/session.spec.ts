@@ -1,10 +1,11 @@
-import { beforeEach, describe, expect, it } from 'vitest';
-import { createSessionSnapshot, useSessionStore } from './session';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+let useSessionStore: (typeof import('./session'))['useSessionStore'];
 
 describe('session store', () => {
   const storage = new Map<string, string>();
 
-  beforeEach(() => {
+  beforeEach(async () => {
     Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,
       value: {
@@ -18,17 +19,20 @@ describe('session store', () => {
       },
     });
     storage.clear();
-    useSessionStore.setState(createSessionSnapshot());
+    vi.resetModules();
+    ({ useSessionStore } = await import('./session'));
   });
 
   it('defaults language to EN when there is no saved selection', () => {
-    expect(createSessionSnapshot().language).toBe('EN');
+    expect(useSessionStore.getState().language).toBe('EN');
   });
 
-  it('restores saved language from localStorage', () => {
+  it('restores saved language from localStorage', async () => {
     localStorage.setItem('anki-session-language', 'PL');
 
-    expect(createSessionSnapshot().language).toBe('PL');
+    vi.resetModules();
+    const { useSessionStore: restoredStore } = await import('./session');
+    expect(restoredStore.getState().language).toBe('PL');
   });
 
   it('persists language changes', () => {
@@ -38,20 +42,11 @@ describe('session store', () => {
     expect(useSessionStore.getState().language).toBe('PL');
   });
 
-  it('reset clears term and senses but keeps the saved language', () => {
-    useSessionStore.setState({
-      term: 'focus',
-      language: 'PL',
-      senses: [{ id: 'sense-1', translationRU: 'fokus' }],
-    });
-    localStorage.setItem('anki-session-language', 'PL');
+  it('defaults to EN when the saved language is unsupported', async () => {
+    localStorage.setItem('anki-session-language', 'DE');
+    vi.resetModules();
+    const { useSessionStore: restoredStore } = await import('./session');
 
-    useSessionStore.getState().reset();
-
-    expect(useSessionStore.getState()).toMatchObject({
-      term: '',
-      language: 'PL',
-      senses: [],
-    });
+    expect(restoredStore.getState().language).toBe('EN');
   });
 });

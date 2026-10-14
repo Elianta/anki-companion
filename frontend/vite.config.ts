@@ -13,6 +13,9 @@ export default defineConfig({
       injectRegister: 'auto',
       registerType: 'autoUpdate',
       manifest: false,
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,jpg}'],
+      },
       includeAssets: [
         'site.webmanifest',
         'apple-touch-icon.png',

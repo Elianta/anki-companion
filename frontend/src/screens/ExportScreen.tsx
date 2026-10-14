@@ -1,132 +1,52 @@
-import { useCallback, useEffect, useState } from 'react';
-import { DownloadIcon } from 'lucide-react';
-
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
-import type { ExportGroup } from '@/lib/db';
-import { fetchDrafts } from '@/services/draft-storage';
-import { fetchExportGroups } from '@/services/export-storage';
+import { ExportGroupCard } from '@/components/exports/ExportGroupCard';
+import { useExports } from '@/components/exports/useExports';
 
 export function ExportScreen() {
-  const [exportGroups, setExportGroups] = useState<ExportGroup[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [draftWords, setDraftWords] = useState<Record<number, string>>({});
-
-  const loadData = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const [loadedDrafts, groups] = await Promise.all([fetchDrafts(), fetchExportGroups()]);
-      const wordMap = loadedDrafts.reduce<Record<number, string>>((acc, draft) => {
-        if (draft.id) {
-          acc[draft.id] = draft.term;
-        }
-        return acc;
-      }, {});
-      setDraftWords(wordMap);
-      setExportGroups(groups);
-    } catch (err) {
-      console.warn('Failed to load export data', err);
-      setError('Failed to load export data.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const handleDownload = (file: ExportGroup['files'][number]) => {
-    const blob = new Blob([file.content], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = file.fileName;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const formatTimestamp = (timestamp: string) => {
-    try {
-      return new Date(timestamp).toISOString();
-    } catch {
-      return timestamp;
-    }
-  };
+  const { exportGroups, draftWords, isLoading, error } = useExports();
 
   return (
-    <section className="space-y-6">
-      <Card className="bg-white">
-        <CardHeader>
-          <CardTitle>Export drafts</CardTitle>
-          <CardDescription>Download CSV files from previous exports.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {isLoading && <p className="text-sm text-muted-foreground">Loading exports…</p>}
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          {!isLoading && !exportGroups.length ? (
-            <p className="text-sm text-muted-foreground">No exports yet.</p>
-          ) : (
-            exportGroups.map((group) => {
-              const words = group.words.length
+    <section aria-labelledby="exports-heading" className="min-w-0 space-y-6">
+      <header className="space-y-2">
+        <h1
+          id="exports-heading"
+          className="text-[30px] leading-tight font-bold tracking-tight text-ink md:text-[34px]"
+        >
+          Export drafts
+        </h1>
+        <p className="text-sm text-text-secondary">Download CSV files from previous exports.</p>
+      </header>
+
+      {isLoading && (
+        <p role="status" className="text-sm text-text-secondary">
+          Loading exports…
+        </p>
+      )}
+      {error && (
+        <p
+          role="alert"
+          className="rounded-2xl border border-danger/20 bg-surface/90 p-6 text-sm text-danger"
+        >
+          {error}
+        </p>
+      )}
+      {!isLoading && !error && !exportGroups.length && (
+        <p className="rounded-2xl border border-line/60 bg-surface/90 p-6 text-sm text-text-secondary">
+          No exports yet.
+        </p>
+      )}
+      <div className="space-y-3">
+        {exportGroups.map((group) => (
+          <ExportGroupCard
+            key={group.id}
+            group={group}
+            words={
+              group.words.length
                 ? group.words
-                : group.draftIds.map((id) => draftWords[id]).filter(Boolean);
-
-              return (
-                <div key={group.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-xs">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <p className="text-sm font-semibold text-slate-900">
-                      Exported {formatTimestamp(group.createdAt)}
-                    </p>
-                  </div>
-
-                  <Accordion type="single" collapsible className="mt-3">
-                    <AccordionItem value={`words-${group.id}`}>
-                      <AccordionTrigger className="w-full justify-between rounded-md py-2 text-sm font-medium">
-                        <span>Words ({group.draftIds.length})</span>
-                      </AccordionTrigger>
-                      <AccordionContent className="pb-3 pt-2">
-                        <div className="flex flex-wrap gap-2">
-                          {words.map((word) => (
-                            <Badge key={`${group.id}-${word}`} variant="secondary">
-                              {word}
-                            </Badge>
-                          ))}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
-
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {group.files.map((file) => (
-                      <Button
-                        key={`${group.id}-${file.noteType}-${file.fileName}`}
-                        type="button"
-                        variant="outline"
-                        className="flex items-center gap-2"
-                        onClick={() => handleDownload(file)}
-                        aria-label={`Download ${file.noteType} CSV for export ${formatTimestamp(group.createdAt)}`}
-                      >
-                        <DownloadIcon className="h-4 w-4" />
-                        {file.noteType} CSV
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </CardContent>
-      </Card>
+                : group.draftIds.map((id) => draftWords[id]).filter(Boolean)
+            }
+          />
+        ))}
+      </div>
     </section>
   );
 }

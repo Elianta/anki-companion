@@ -1,328 +1,87 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { RefreshCwIcon, Trash2Icon } from 'lucide-react';
-import { useNavigate } from '@tanstack/react-router';
-import { toast } from 'sonner';
-
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { ValueSelect } from '@/components/ValueSelect';
-import { cn } from '@/lib/utils';
-import type { DraftEntry, DraftNoteType } from '@/lib/db';
-import {
-  fetchDrafts,
-  generateCardForDraft,
-  getNoteTypesForLanguage,
-  removeDraft,
-  updateDraftNoteType,
-} from '@/services/draft-storage';
-import { formatRateLimitMessage, isRateLimitError } from '@/services/api';
-import { createExportGroupFromDrafts } from '@/services/export-storage';
-import { CardEditorButton } from '@/components/drafts/CardEditorButton';
-import { useDraftCountStore } from '@/stores/drafts';
-import { useLLMStore } from '@/stores/llm';
+import { DraftExportPanel } from '@/components/drafts/DraftExportPanel';
+import { DraftList } from '@/components/drafts/DraftList';
+import { DraftSelectionToolbar } from '@/components/drafts/DraftSelectionToolbar';
+import { useDrafts } from '@/components/drafts/useDrafts';
 
 export function DraftScreen() {
-  const navigate = useNavigate({ from: '/draft' });
-  const currentModel = useLLMStore((state) => state.llmModel);
-  const [drafts, setDrafts] = useState<DraftEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [generatingIds, setGeneratingIds] = useState<Set<number>>(new Set());
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [isExporting, setIsExporting] = useState(false);
-
-  const loadDrafts = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const storedDrafts = await fetchDrafts();
-      setDrafts(storedDrafts);
-      useDraftCountStore
-        .getState()
-        .setCount(storedDrafts.filter((draft) => !draft.exported).length);
-      setSelectedIds((prev) => {
-        const allowed = new Set(
-          storedDrafts
-            .filter((draft) => draft.card && !draft.exported)
-            .map((draft) => draft.id!) as number[],
-        );
-        const next = new Set<number>();
-        prev.forEach((id) => {
-          if (allowed.has(id)) {
-            next.add(id);
-          }
-        });
-        return next;
-      });
-    } catch (err) {
-      console.warn('Failed to load drafts', err);
-      setError('Failed to load drafts. Refresh the page.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadDrafts();
-  }, [loadDrafts]);
-
-  const refreshDraft = async () => {
-    const storedDrafts = await fetchDrafts();
-    setDrafts(storedDrafts);
-  };
-
-  const setGenerating = (draftId: number, active: boolean) => {
-    setGeneratingIds((prev) => {
-      const next = new Set(prev);
-      if (active) {
-        next.add(draftId);
-      } else {
-        next.delete(draftId);
-      }
-      return next;
-    });
-  };
-
-  const triggerCardGeneration = async (draftId: number) => {
-    setGenerating(draftId, true);
-    try {
-      await generateCardForDraft(draftId);
-      await refreshDraft();
-    } catch (err) {
-      console.warn('Failed to generate card', err);
-      const message = isRateLimitError(err)
-        ? formatRateLimitMessage(err.retryAfterSeconds)
-        : 'Failed to generate card.';
-      setError(message);
-      toast.error(message);
-    } finally {
-      setGenerating(draftId, false);
-    }
-  };
-
-  const handleNoteTypeChange = async (draftId: number, noteType: DraftNoteType) => {
-    setDrafts((prev) =>
-      prev.map((draft) => (draft.id === draftId ? { ...draft, noteType, card: null } : draft)),
-    );
-    try {
-      await updateDraftNoteType(draftId, noteType);
-      await triggerCardGeneration(draftId);
-    } catch (err) {
-      console.warn('Failed to update note type', err);
-      const message = isRateLimitError(err)
-        ? formatRateLimitMessage(err.retryAfterSeconds)
-        : 'Failed to update note type.';
-      setError(message);
-      toast.error(message);
-    }
-  };
-
-  const handleRemove = async (draftId: number) => {
-    const previous = drafts;
-    setDrafts((prev) => prev.filter((draft) => draft.id !== draftId));
-    try {
-      await removeDraft(draftId);
-    } catch (err) {
-      console.warn('Failed to remove draft', err);
-      setError('Failed to delete draft.');
-      setDrafts(previous);
-    }
-  };
-
-  const displayedDrafts = drafts.filter((draft) => !draft.exported);
-  const hasDrafts = displayedDrafts.length > 0;
-  const readyDrafts = useMemo(
-    () => displayedDrafts.filter((draft) => draft.card),
-    [displayedDrafts],
-  );
-  const selectedCount = readyDrafts.filter((draft) => draft.id && selectedIds.has(draft.id)).length;
-  const isAllSelected = readyDrafts.length > 0 && selectedCount === readyDrafts.length;
-
-  const toggleDraftSelection = (draftId: number) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(draftId)) {
-        next.delete(draftId);
-      } else {
-        next.add(draftId);
-      }
-      return next;
-    });
-  };
-
-  const toggleAll = () => {
-    if (isAllSelected) {
-      setSelectedIds(new Set());
-      return;
-    }
-    const all = readyDrafts.map((draft) => draft.id!) as number[];
-    setSelectedIds(new Set(all));
-  };
-
-  const handleExport = async () => {
-    const exportIds = readyDrafts
-      .filter((draft) => draft.id && selectedIds.has(draft.id))
-      .map((draft) => draft.id!) as number[];
-
-    if (!exportIds.length) {
-      setError('Select at least one ready card to export.');
-      return;
-    }
-
-    setIsExporting(true);
-    setError(null);
-    try {
-      await createExportGroupFromDrafts(exportIds);
-      setSelectedIds(new Set());
-      await loadDrafts();
-      await navigate({ to: '/export' });
-    } catch (err) {
-      console.warn('Failed to export drafts', err);
-      const message =
-        err instanceof Error ? err.message : 'Failed to export selected drafts. Try again.';
-      setError(message);
-      toast.error(message);
-    } finally {
-      setIsExporting(false);
-    }
-  };
+  const {
+    drafts,
+    currentModel,
+    isLoading,
+    error,
+    selectedIds,
+    generatingIds,
+    isExporting,
+    selectedCount,
+    isAllSelected,
+    readyCount,
+    toggleAll,
+    toggleDraftSelection,
+    handleNoteTypeChange,
+    triggerCardGeneration,
+    handleRemove,
+    refreshDraft,
+    handleExport,
+  } = useDrafts();
 
   return (
-    <section className="space-y-6">
-      <Card className="bg-white">
-        <CardHeader>
-          <CardTitle>Draft cards</CardTitle>
-          <CardDescription>Manage saved senses before exporting.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {isLoading && <p className="text-sm text-muted-foreground">Loading drafts…</p>}
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          {!isLoading && !hasDrafts && (
-            <p className="text-sm text-muted-foreground">
-              No drafts yet. Open the "Senses" tab, pick a sense, and save it.
-            </p>
-          )}
+    <section aria-labelledby="drafts-heading" className="flex min-w-0 flex-col gap-6">
+      <header className="space-y-2">
+        <h1
+          id="drafts-heading"
+          className="text-[30px] leading-tight font-bold tracking-tight text-ink md:text-[34px]"
+        >
+          Draft cards
+        </h1>
+        <p className="text-lg leading-relaxed text-text-secondary">
+          Manage saved senses before exporting.
+        </p>
+      </header>
 
-          {hasDrafts && (
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-2 sm:p-4">
-                <Checkbox
-                  checked={isAllSelected}
-                  onCheckedChange={toggleAll}
-                  className="h-9 w-9"
-                  aria-label="Select all ready drafts"
-                  disabled={!readyDrafts.length}
-                />
-                <p className="text-sm text-slate-800">Select all ready cards</p>
-              </div>
-
-              <div className="grid gap-4">
-                {displayedDrafts.map((draft) => {
-                  const noteTypes = getNoteTypesForLanguage(draft.language);
-                  const isExported = !!draft.exported;
-                  const isReady = !!draft.card;
-                  const isSelected = !!draft.id && selectedIds.has(draft.id);
-                  return (
-                    <div
-                      key={draft.id}
-                      data-test-id={`draft-item-${draft.id}`}
-                      className="rounded-xl border border-slate-200 bg-slate-50 p-2 shadow-xs sm:p-4"
-                    >
-                      <div className="flex flex-wrap items-start gap-2">
-                        <Checkbox
-                          checked={isSelected}
-                          disabled={!isReady || isExported}
-                          onCheckedChange={() => draft.id && toggleDraftSelection(draft.id)}
-                          className="h-9 w-9"
-                          aria-label={`Select draft ${draft.term}`}
-                        />
-                        <div className="flex items-center gap-2">
-                          <ValueSelect
-                            values={noteTypes}
-                            value={draft.noteType}
-                            onValueChange={(value) =>
-                              draft.id && handleNoteTypeChange(draft.id, value)
-                            }
-                            disabled={isExported || noteTypes.length === 1}
-                            aria-label={`Note type for ${draft.term}`}
-                          />
-                          {draft.card ? (
-                            <CardEditorButton
-                              draft={draft}
-                              onSave={refreshDraft}
-                              disabled={isExported}
-                            />
-                          ) : null}
-                          {(!draft.card || draft.card.model !== currentModel) && (
-                            <div className="relative">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                className="text-slate-700"
-                                aria-label={draft.card ? 'Regenerate card' : 'Generate card'}
-                                data-test-id={`card-pending-${draft.id}`}
-                                onClick={() => draft.id && triggerCardGeneration(draft.id)}
-                                disabled={isExported || generatingIds.has(draft.id ?? -1)}
-                              >
-                                <RefreshCwIcon
-                                  className={cn(
-                                    'h-4 w-4',
-                                    generatingIds.has(draft.id ?? -1) && 'animate-spin',
-                                  )}
-                                />
-                              </Button>
-                              <span className="pointer-events-none absolute inset-0 rounded-md bg-slate-200/70 animate-pulse" />
-                            </div>
-                          )}
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          className="ml-auto text-slate-600"
-                          onClick={() => draft.id && handleRemove(draft.id)}
-                          aria-label={`Delete draft ${draft.term}`}
-                        >
-                          <Trash2Icon className="h-4 w-4" />
-                        </Button>
-                      </div>
-
-                      <div className="mt-4 pl-14 grid gap-4 sm:grid-cols-2">
-                        <div className="space-y-1">
-                          <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                            Term
-                          </p>
-                          <p className="text-sm font-semibold text-slate-900">{draft.term}</p>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                            Translation
-                          </p>
-                          <p className="text-sm text-slate-900">{draft.sense.translationRU}</p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </CardContent>
-        <CardContent className="border-t border-slate-200 pt-6">
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              type="button"
-              onClick={handleExport}
-              disabled={isExporting || selectedCount === 0}
-              aria-label="Export selected drafts"
-            >
-              {isExporting ? 'Exporting…' : 'Export selected'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {isLoading && (
+        <p role="status" className="text-sm text-text-secondary">
+          Loading drafts…
+        </p>
+      )}
+      {error && (
+        <p
+          role="alert"
+          className="rounded-2xl border border-danger/20 bg-surface/90 p-6 text-sm text-danger"
+        >
+          {error}
+        </p>
+      )}
+      {!isLoading && !error && !drafts.length && (
+        <p className="rounded-2xl border border-line/60 bg-surface/90 p-6 text-sm text-text-secondary">
+          No drafts yet.
+        </p>
+      )}
+      {!!drafts.length && (
+        <div className="space-y-3">
+          <DraftSelectionToolbar
+            selectedCount={selectedCount}
+            isAllSelected={isAllSelected}
+            readyCount={readyCount}
+            onToggleAll={toggleAll}
+          />
+          <DraftList
+            drafts={drafts}
+            selectedIds={selectedIds}
+            generatingIds={generatingIds}
+            currentModel={currentModel}
+            onToggleSelection={toggleDraftSelection}
+            onNoteTypeChange={handleNoteTypeChange}
+            onGenerate={triggerCardGeneration}
+            onRemove={handleRemove}
+            onSave={refreshDraft}
+          />
+        </div>
+      )}
+      <DraftExportPanel
+        selectedCount={selectedCount}
+        isExporting={isExporting}
+        onExport={handleExport}
+      />
     </section>
   );
 }

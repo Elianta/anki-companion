@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
-import { CheckIcon } from 'lucide-react';
+import { CheckIcon, ChevronDownIcon } from 'lucide-react';
 import { useLLMStore, type LLMModel, type LLMProvider } from '@/stores/llm';
 import { Button } from '@/components/ui/button';
-import { getProviderIcon, getProviderLabel } from '@/components/icons/llmProviderMeta';
+import { getProviderIcon } from '@/components/icons/llmProviderMeta';
 import {
   Drawer,
   DrawerClose,
@@ -11,13 +11,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from '@/components/ui/drawer';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { ValueSelect } from '@/components/ValueSelect';
 import { cn } from '@/lib/utils';
 
 type LLMSelectProps = {
@@ -52,6 +46,9 @@ const OPTIONS: LLMOption[] = [
   },
 ];
 
+const MODEL_VALUES = OPTIONS.map((option) => option.value);
+const MODEL_LABELS = Object.fromEntries(OPTIONS.map((option) => [option.value, option.label]));
+
 function useLLMSelectionController() {
   const llmProvider = useLLMStore((state) => state.llmProvider);
   const llmModel = useLLMStore((state) => state.llmModel);
@@ -81,18 +78,16 @@ export function LLMSelect({ className = '' }: LLMSelectProps) {
 
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
-      <Select value={value} onValueChange={handleChange}>
-        <SelectTrigger className="w-full">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {OPTIONS.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <ValueSelect
+        values={MODEL_VALUES}
+        value={value}
+        onValueChange={handleChange}
+        optionLabels={MODEL_LABELS}
+        size="lg"
+        align="end"
+        aria-label="Select AI model"
+        className="w-full border-line/60 bg-surface px-4 text-base text-ink shadow-[0_2px_8px] shadow-ink/2 hover:border-line focus-visible:border-highlight focus-visible:ring-highlight/20"
+      />
     </div>
   );
 }
@@ -100,8 +95,6 @@ export function LLMSelect({ className = '' }: LLMSelectProps) {
 export function LLMSelectDrawerButton({ className = '' }: LLMSelectProps) {
   const [open, setOpen] = useState(false);
   const { value, selectedOption, handleChange } = useLLMSelectionController();
-  const TriggerIcon = getProviderIcon(selectedOption.provider);
-  const triggerLabel = `Model: ${getProviderLabel(selectedOption.provider)}`;
 
   const handleSelect = (nextValue: string) => {
     handleChange(nextValue);
@@ -114,18 +107,23 @@ export function LLMSelectDrawerButton({ className = '' }: LLMSelectProps) {
         <Button
           type="button"
           variant="outline"
+          size="lg"
           className={cn(
-            'h-9 w-36 justify-start gap-2 rounded-full px-3 text-sm font-medium md:hidden',
+            'min-w-0 shrink max-w-[min(60vw,240px)] justify-between gap-3 border-line/60 bg-surface px-4 text-sm font-normal text-ink shadow-[0_2px_8px] shadow-ink/2 hover:border-line hover:text-highlight-hover focus-visible:ring-highlight/20 data-[state=open]:text-highlight md:hidden',
+            '[&[data-state=open]>svg]:rotate-180',
             className,
           )}
           aria-label="Select AI model"
           data-test-id="llm-select-mobile-trigger"
         >
-          <TriggerIcon className="h-4 w-4 shrink-0" />
-          <span className="truncate">{triggerLabel}</span>
+          <span className="truncate">{selectedOption.label}</span>
+          <ChevronDownIcon
+            aria-hidden="true"
+            className="size-4 shrink-0 origin-center text-current transform-fill transition-transform duration-200 ease-out motion-reduce:transition-none"
+          />
         </Button>
       </DrawerTrigger>
-      <DrawerContent className="data-[vaul-drawer-direction=bottom]:rounded-t-2xl">
+      <DrawerContent className="border-line/60 bg-surface pb-[env(safe-area-inset-bottom)] text-ink data-[vaul-drawer-direction=bottom]:rounded-t-3xl">
         <div className="flex flex-1 flex-col overflow-hidden">
           <DrawerHeader>
             <DrawerTitle>Choose AI model</DrawerTitle>
@@ -137,26 +135,30 @@ export function LLMSelectDrawerButton({ className = '' }: LLMSelectProps) {
 
               return (
                 <DrawerClose asChild key={option.value}>
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="xl"
                     onClick={() => handleSelect(option.value)}
                     className={cn(
-                      'flex items-center justify-between rounded-xl border px-4 py-3 text-left transition',
+                      'w-full justify-between px-4 text-left font-normal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-highlight',
                       isSelected
-                        ? 'border-slate-900 bg-slate-900 text-white'
-                        : 'border-slate-200 bg-white text-slate-900',
+                        ? 'bg-highlight-light text-highlight'
+                        : 'bg-surface text-ink hover:bg-surface-subtle',
                     )}
                     aria-pressed={isSelected}
                     data-test-id={`llm-option-${option.value}`}
                   >
                     <span className="flex items-center gap-3">
                       <OptionIcon className="h-4 w-4 shrink-0" />
-                      <span className="text-sm font-medium">{option.label}</span>
+                      <span
+                        className={cn('text-base', isSelected ? 'font-semibold' : 'font-normal')}
+                      >
+                        {option.label}
+                      </span>
                     </span>
-                    <CheckIcon
-                      className={cn('h-4 w-4', isSelected ? 'opacity-100' : 'opacity-0')}
-                    />
-                  </button>
+                    <CheckIcon className={cn('size-5', isSelected ? 'opacity-100' : 'opacity-0')} />
+                  </Button>
                 </DrawerClose>
               );
             })}

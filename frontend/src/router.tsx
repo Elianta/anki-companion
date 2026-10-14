@@ -1,7 +1,6 @@
-import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
+import { createRootRoute, createRoute, createRouter, redirect } from '@tanstack/react-router';
 import { AppShell } from './AppShell';
 import { HomeScreen } from './screens/HomeScreen';
-import { SensesScreen } from './screens/SensesScreen';
 import { DraftScreen } from './screens/DraftScreen';
 import { ExportScreen } from './screens/ExportScreen';
 import { HistoryScreen } from './screens/HistoryScreen';
@@ -19,7 +18,9 @@ const homeRoute = createRoute({
 const sensesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/senses',
-  component: SensesScreen,
+  beforeLoad: () => {
+    throw redirect({ to: '/' });
+  },
 });
 
 const draftRoute = createRoute({

@@ -1,10 +1,10 @@
-import { Link, Outlet, useRouterState } from '@tanstack/react-router';
+import { Link, Outlet } from '@tanstack/react-router';
 import { BookmarkIcon, ClockIcon, HomeIcon, UploadCloudIcon } from 'lucide-react';
 
-import { useSessionStore } from '@/stores/session';
 import { useEffect } from 'react';
 import { useDraftCountStore } from '@/stores/drafts';
 import { LLMSelect, LLMSelectDrawerButton } from '@/components/LLMSelect';
+import pageBackground from '@/assets/bg.jpg';
 
 const NAV_LINKS = [
   { to: '/', label: 'Search', icon: HomeIcon },
@@ -16,49 +16,47 @@ const NAV_LINKS = [
 export function AppShell() {
   const draftCount = useDraftCountStore((state) => state.count);
   const initCount = useDraftCountStore((state) => state.initCount);
-  const { location } = useRouterState({
-    select: (state) => ({ location: state.location }),
-  });
-  const isHomeRoute = location.pathname === '/';
-  const language = useSessionStore((state) => state.language);
-  const setLanguage = useSessionStore((state) => state.setLanguage);
-
-  const toggleLanguage = () => {
-    setLanguage(language === 'EN' ? 'PL' : 'EN');
-  };
 
   useEffect(() => {
     void initCount();
   }, [initCount]);
 
   return (
-    <div className="grid grid-rows-[max-content_minmax(400px,1fr)] min-h-svh bg-background text-foreground">
-      <header className="border-b border-slate-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-6 md:flex-row md:items-center md:justify-between sm:px-6 lg:px-8">
-          <div className="flex w-full flex-col gap-3">
-            <div className="flex items-center justify-between gap-4">
-              <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Ankify</p>
-
-              <LLMSelectDrawerButton />
-            </div>
-          </div>
-          <nav className="hidden items-center gap-4 md:flex">
+    <div className="relative isolate grid min-h-svh [--mobile-nav-height:calc(4.75rem+1px+env(safe-area-inset-bottom))] md:[--mobile-nav-height:0px] [--bottom-action-panel-height:4.5rem] md:[--bottom-action-panel-height:5.5rem] [--page-gutter:1.25rem] sm:[--page-gutter:1.5rem] lg:[--page-gutter:2rem] grid-cols-1 grid-rows-[max-content_minmax(400px,1fr)] bg-surface text-foreground">
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="relative h-lvh w-screen bg-surface">
+          <div
+            className="absolute -inset-1 bg-cover bg-center bg-no-repeat blur-[1.5px]"
+            style={{ backgroundImage: `url(${pageBackground})` }}
+          />
+          <div className="absolute inset-0 bg-white/75 md:bg-white/70" />
+        </div>
+      </div>
+      <header className="border-b border-line/60 bg-white/20 pt-[env(safe-area-inset-top)] text-ink backdrop-blur-[10px]">
+        <div className="mx-auto flex h-20 max-w-6xl items-center justify-between gap-4 px-(--page-gutter) md:h-[68px]">
+          <p className="shrink-0 text-md font-medium uppercase tracking-[0.3em] text-ink">Ankify</p>
+          <LLMSelectDrawerButton />
+          <nav
+            aria-label="Main navigation"
+            className="hidden h-full items-center gap-5 md:flex lg:gap-7"
+          >
             {NAV_LINKS.map((link) => {
               const showBadge = link.to === '/draft' && draftCount > 0;
               return (
                 <Link
                   key={link.to}
                   to={link.to}
+                  activeOptions={{ exact: link.to === '/' }}
                   activeProps={{
                     'data-active': true,
                   }}
-                  className="relative flex items-center gap-1 px-2 py-3 text-sm font-medium text-slate-500 transition hover:text-slate-900 data-[active=true]:text-slate-900"
+                  className="relative flex h-full items-center gap-1.5 px-1 text-base font-semibold text-text-secondary transition-colors after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-transparent hover:text-highlight-hover focus-visible:rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-highlight data-[active=true]:text-highlight data-[active=true]:hover:text-highlight-hover data-[active=true]:after:bg-highlight"
                 >
                   {link.label}
                   {showBadge && (
                     <span
                       data-test-id="drafts-badge-desktop"
-                      className="flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold leading-4 text-white"
+                      className="flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 text-[11px] font-semibold leading-5 text-white"
                     >
                       {draftCount}
                     </span>
@@ -66,53 +64,45 @@ export function AppShell() {
                 </Link>
               );
             })}
-            <div className="hidden md:block">
-              <LLMSelect />
-            </div>
+            <LLMSelect />
           </nav>
         </div>
       </header>
-      <main className="grid">
-        <div className="mx-auto grid w-full max-w-6xl px-4 pb-28 pt-8 sm:px-6 lg:px-8 md:pb-10 md:pt-10">
+      <main className="grid min-w-0 content-start [--bottom-action-panel-space:0px] has-[[data-slot=bottom-action-panel]]:[--bottom-action-panel-space:var(--bottom-action-panel-height)]">
+        <div className="mx-auto w-full min-w-0 max-w-6xl px-(--page-gutter) pb-[calc(var(--mobile-nav-height)+var(--bottom-action-panel-space)+26px)] pt-8 md:pt-10">
           <Outlet />
         </div>
       </main>
-      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur md:hidden">
-        <div className="mx-auto grid grid-cols-5 max-w-3xl items-center justify-between justify-items-center px-4 py-3 sm:px-6">
-          <button
-            type="button"
-            disabled={!isHomeRoute}
-            onClick={toggleLanguage}
-            className="relative z-30 -top-7 flex order-3 h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-slate-900 text-sm font-semibold text-white shadow-sm transition outline-4 outline-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
-            aria-label="Toggle language"
-            data-test-id="language-toggle-mobile"
-          >
-            {language}
-          </button>
-          {NAV_LINKS.map((link, idx) => {
+      <nav
+        aria-label="Mobile navigation"
+        className="fixed inset-x-0 bottom-0 z-20 border-t border-line/60 bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+      >
+        <div className="mx-auto grid h-19 max-w-3xl grid-cols-4 items-center justify-items-center gap-2 px-(--page-gutter) py-2">
+          {NAV_LINKS.map((link) => {
             const Icon = link.icon;
             const showBadge = link.to === '/draft' && draftCount > 0;
-            const order = idx < 2 ? idx + 1 : idx + 2;
             return (
               <Link
                 key={link.to}
                 to={link.to}
+                activeOptions={{ exact: link.to === '/' }}
                 activeProps={{
                   'data-active': true,
                 }}
-                style={{ order }}
-                className={`relative flex flex-col items-center gap-1 rounded-lg px-3 py-1 text-xs font-medium text-slate-500 transition hover:text-slate-900 data-[active=true]:text-slate-900`}
+                className="group flex min-h-14 w-full max-w-22 min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-xs font-semibold text-text-secondary transition-colors first:justify-self-start last:justify-self-end hover:bg-surface-subtle hover:text-highlight-hover focus-visible:outline-2 focus-visible:outline-highlight data-[active=true]:bg-highlight-light data-[active=true]:text-highlight data-[active=true]:hover:text-highlight-hover"
               >
-                <Icon className="h-5 w-5" />
+                <span className="relative">
+                  <Icon className="size-6" aria-hidden="true" />
+                  {showBadge && (
+                    <span
+                      data-test-id="drafts-badge-mobile"
+                      className="absolute -right-2 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 text-[11px] font-semibold leading-5 text-white ring-2 ring-surface group-data-[active=true]:ring-highlight-light"
+                    >
+                      {draftCount}
+                    </span>
+                  )}
+                </span>
                 {link.label}
-                {showBadge && (
-                  <span
-                    data-test-id="drafts-badge-mobile"
-                    className="absolute right-3 -top-0.5 h-4 min-w-4 rounded-full flex justify-center bg-rose-500 px-1 text-[10px] font-semibold leading-4 text-white"
-                  >
-                    {draftCount}
-                  </span>
-                )}
               </Link>
             );
           })}

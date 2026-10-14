@@ -21,6 +21,7 @@ type CardEditorButtonProps = {
   draft: DraftEntry;
   onSave: () => Promise<void> | void;
   disabled?: boolean;
+  className?: string;
 };
 
 const normalizeFields = (fields: Record<string, unknown> | undefined | null) =>
@@ -29,7 +30,12 @@ const normalizeFields = (fields: Record<string, unknown> | undefined | null) =>
     return acc;
   }, {});
 
-export function CardEditorButton({ draft, onSave, disabled = false }: CardEditorButtonProps) {
+export function CardEditorButton({
+  draft,
+  onSave,
+  disabled = false,
+  className,
+}: CardEditorButtonProps) {
   const [open, setOpen] = useState(false);
   const [fields, setFields] = useState<Record<string, string>>(
     normalizeFields(draft.card?.fields ?? {}),
@@ -62,11 +68,12 @@ export function CardEditorButton({ draft, onSave, disabled = false }: CardEditor
           type="button"
           variant="outline"
           disabled={disabled}
-          size="icon"
+          icon
+          className={className}
           data-test-id={`card-ready-${draft.id}`}
           aria-label="View card"
         >
-          <FilePenLineIcon className="h-4 w-4" />
+          <FilePenLineIcon aria-hidden="true" className="size-4" />
         </Button>
       </DrawerTrigger>
       <DrawerContent className="data-[vaul-drawer-direction=bottom]:rounded-t-2xl">

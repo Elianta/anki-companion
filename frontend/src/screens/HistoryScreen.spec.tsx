@@ -36,6 +36,20 @@ const buildSense = (overrides: Partial<Sense> = {}): Sense => ({
 
 const renderScreen = () => render(<HistoryScreen />);
 
+const seedHistory = (count: number) =>
+  db.drafts.bulkAdd(
+    Array.from(
+      { length: count },
+      (_, index): DraftEntry => ({
+        term: `word ${index + 1}`,
+        language: 'EN',
+        noteType: 'EN: Default',
+        sense: buildSense({ id: `history-${index}`, translationRU: `translation ${index + 1}` }),
+        exported: true,
+      }),
+    ),
+  );
+
 const createExportedDraft = async ({
   sense,
   term,
@@ -96,11 +110,11 @@ describe('HistoryScreen', () => {
 
     expect(await screen.findByText('hello')).toBeInTheDocument();
     expect(screen.getByText('hello ru')).toBeInTheDocument();
-    expect(screen.getByLabelText('Note type for hello')).toHaveTextContent('EN: Default');
+    expect(screen.getByLabelText('Note type for hello')).toHaveTextContent('EN · Default');
 
     expect(screen.getByText('czesc')).toBeInTheDocument();
     expect(screen.getByText('cześć')).toBeInTheDocument();
-    expect(screen.getByLabelText('Note type for czesc')).toHaveTextContent('PL: Default');
+    expect(screen.getByLabelText('Note type for czesc')).toHaveTextContent('PL · Default');
   });
 
   it('restores a draft and removes it from history', async () => {
@@ -164,5 +178,92 @@ describe('HistoryScreen', () => {
     renderScreen();
 
     expect(await screen.findByText('Failed to load history.')).toBeInTheDocument();
+    expect(screen.queryByText('No exported drafts yet.')).not.toBeInTheDocument();
+  });
+
+  it('keeps selections between pages and selects all history for deletion', async () => {
+    await seedHistory(13);
+    renderScreen();
+
+    await user.click(
+      await screen.findByRole('checkbox', { name: 'Select exported draft word 13' }),
+    );
+    expect(screen.getByText('1 item selected')).toBeInTheDocument();
+    expect(screen.getAllByRole('article')).toHaveLength(12);
+    await user.click(screen.getByRole('button', { name: 'Next page' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Select exported draft word 1' }));
+    expect(screen.getByText('2 items selected')).toBeInTheDocument();
+    expect(
+      screen.getByRole('checkbox', { name: 'Select all exported drafts' }),
+    ).toBePartiallyChecked();
+    await user.click(screen.getByRole('button', { name: 'Previous page' }));
+    expect(screen.getByRole('checkbox', { name: 'Select exported draft word 13' })).toBeChecked();
+
+    await user.click(screen.getByRole('checkbox', { name: 'Select all exported drafts' }));
+    expect(screen.getByText('13 items selected')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Delete selected' }));
+    expect(await screen.findByText('No exported drafts yet.')).toBeInTheDocument();
+    expect(await db.drafts.count()).toBe(0);
+    expect(
+      screen.queryByRole('navigation', { name: 'History pagination' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('returns to a valid page after restoring the last item and retains other selections', async () => {
+    await seedHistory(13);
+    renderScreen();
+    await user.click(
+      await screen.findByRole('checkbox', { name: 'Select exported draft word 13' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Next page' }));
+    await user.click(screen.getByRole('button', { name: 'Restore draft word 1' }));
+
+    expect(
+      await screen.findByRole('checkbox', { name: 'Select exported draft word 13' }),
+    ).toBeChecked();
+    expect(screen.getAllByRole('article')).toHaveLength(12);
+    expect(screen.getByText('1 item selected')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('navigation', { name: 'History pagination' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', { name: 'Select exported draft word 1' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps a draft in history when restoring fails', async () => {
+    await seedHistory(1);
+    returnDraftMock.mockRejectedValueOnce(new Error('DB unavailable'));
+    renderScreen();
+    await user.click(await screen.findByRole('button', { name: 'Restore draft word 1' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to restore draft.');
+    expect(screen.getByRole('button', { name: 'Restore draft word 1' })).toBeEnabled();
+    expect(
+      screen.getByRole('checkbox', { name: 'Select exported draft word 1' }),
+    ).toBeInTheDocument();
+  });
+
+  it('removes successful deletions and retains failed items for retry', async () => {
+    await seedHistory(2);
+    const removeMock = vi
+      .spyOn(draftStorage, 'removeDraft')
+      .mockRejectedValueOnce(new Error('DB unavailable'));
+    try {
+      renderScreen();
+      await user.click(await screen.findByRole('checkbox', { name: 'Select all exported drafts' }));
+      await user.click(screen.getByRole('button', { name: 'Delete selected' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Failed to delete selected drafts.',
+      );
+      expect(screen.getByRole('checkbox', { name: 'Select exported draft word 2' })).toBeChecked();
+      expect(
+        screen.queryByRole('checkbox', { name: 'Select exported draft word 1' }),
+      ).not.toBeInTheDocument();
+      expect(screen.getByText('1 item selected')).toBeInTheDocument();
+      expect(await db.drafts.count()).toBe(1);
+    } finally {
+      removeMock.mockRestore();
+    }
   });
 });

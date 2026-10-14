@@ -103,7 +103,7 @@ describe('DraftScreen', () => {
     renderScreen();
 
     await waitFor(() => expect(screen.queryByText(/Loading drafts/i)).not.toBeInTheDocument());
-    expect(screen.getByText(/No drafts yet\. Open the "Senses" tab/i)).toBeInTheDocument();
+    expect(screen.getByText(/No drafts yet\./i)).toBeInTheDocument();
   });
 
   it('shows an error message when drafts fail to load', async () => {
@@ -114,6 +114,8 @@ describe('DraftScreen', () => {
     expect(
       await screen.findByText(/Failed to load drafts\. Refresh the page\./i),
     ).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('Failed to load drafts.');
+    expect(screen.queryByText('No drafts yet.')).not.toBeInTheDocument();
   });
 
   it('shows stored drafts with key fields', async () => {
@@ -179,6 +181,45 @@ describe('DraftScreen', () => {
     expect(await selectAll()).toBeDisabled();
   });
 
+  it('updates the selection count and selects only ready cards', async () => {
+    await seedDraft({ term: 'apple', language: 'EN', sense: { id: 'ready-en' } });
+    await seedDraft({ term: 'jabłko', language: 'PL', sense: { id: 'ready-pl' } });
+    const storedDrafts = await draftStorage.fetchDrafts();
+    vi.spyOn(draftStorage, 'fetchDrafts').mockResolvedValueOnce([
+      ...storedDrafts,
+      {
+        id: 999,
+        term: 'pending',
+        language: 'PL',
+        noteType: 'PL: Default',
+        sense: buildSense({ id: 'pending' }),
+        card: null,
+        exported: false,
+      },
+    ]);
+
+    const { selectAll, draftCheckbox, exportButton } = renderScreen();
+    const all = await selectAll();
+    const exportSelected = await exportButton();
+    expect(screen.getByText('0 cards selected')).toBeInTheDocument();
+    expect(await draftCheckbox('pending')).toBeDisabled();
+
+    await user.click(await draftCheckbox('apple'));
+    expect(screen.getByText('1 card selected')).toBeInTheDocument();
+    expect(all).toHaveAttribute('aria-checked', 'mixed');
+    expect(exportSelected).toBeEnabled();
+
+    await user.click(all);
+    expect(screen.getByText('2 cards selected')).toBeInTheDocument();
+    expect(await draftCheckbox('apple')).toBeChecked();
+    expect(await draftCheckbox('jabłko')).toBeChecked();
+    expect(await draftCheckbox('pending')).not.toBeChecked();
+
+    await user.click(all);
+    expect(screen.getByText('0 cards selected')).toBeInTheDocument();
+    expect(exportSelected).toBeDisabled();
+  });
+
   it('allows changing note type', async () => {
     const plDraftId = await seedDraft({
       term: 'pisać',
@@ -214,6 +255,54 @@ describe('DraftScreen', () => {
     await waitFor(() => expect(draftItem(plDraftId)).not.toBeInTheDocument());
 
     expect(removeDraftMock).toHaveBeenCalledWith(plDraftId);
+  });
+
+  it('disables export during card type generation and restores the selected ready card', async () => {
+    const id = await seedDraft({ term: 'pisać', language: 'PL', sense: { id: 'type-change' } });
+    const actual = await vi.importActual<typeof draftStorage>('@/services/draft-storage');
+    let finishGeneration!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      finishGeneration = resolve;
+    });
+    generateCardForDraftMock.mockImplementationOnce(async (draftId) => {
+      await pending;
+      return actual.generateCardForDraft(draftId);
+    });
+    const { draftCheckbox, noteTypeTrigger, exportButton, cardReadyButton } = renderScreen();
+    await user.click(await draftCheckbox('pisać'));
+    expect(screen.getByText('1 card selected')).toBeInTheDocument();
+
+    await user.click(await noteTypeTrigger('pisać'));
+    await user.click(screen.getByRole('option', { name: 'PL: Verbs' }));
+    await waitFor(() => expect(generateCardForDraftMock).toHaveBeenCalledWith(id));
+
+    expect(screen.getByText('0 cards selected')).toBeInTheDocument();
+    expect(await draftCheckbox('pisać')).toBeChecked();
+    expect(await draftCheckbox('pisać')).toBeDisabled();
+    expect(await exportButton()).toBeDisabled();
+
+    await act(async () => {
+      finishGeneration();
+    });
+    expect(await cardReadyButton(id)).toBeInTheDocument();
+    expect(await draftCheckbox('pisać')).toBeEnabled();
+    expect(await draftCheckbox('pisać')).toBeChecked();
+    expect(screen.getByText('1 card selected')).toBeInTheDocument();
+    expect(await exportButton()).toBeEnabled();
+  });
+
+  it('restores the draft and its selection when removal fails', async () => {
+    await seedDraft({ term: 'apple', language: 'EN', sense: { id: 'remove-failure' } });
+    removeDraftMock.mockRejectedValueOnce(new Error('Cannot delete'));
+    const { draftCheckbox, removeButton } = renderScreen();
+    await user.click(await draftCheckbox('apple'));
+    await user.click(await removeButton('apple'));
+
+    await waitFor(() =>
+      expect(screen.getByRole('article', { name: 'Draft apple' })).toBeInTheDocument(),
+    );
+    expect(await draftCheckbox('apple')).toBeChecked();
+    expect(screen.getByText('1 card selected')).toBeInTheDocument();
   });
 
   it('exports selected drafts and removes them from list', async () => {
