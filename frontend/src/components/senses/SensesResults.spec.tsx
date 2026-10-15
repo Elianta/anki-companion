@@ -44,14 +44,17 @@ const renderScreen = ({
   senses = defaultSenses,
   term = 'test',
   language = 'EN',
+  onSaved = vi.fn(),
 }: {
   senses?: Sense[];
   term?: string;
   language?: 'EN' | 'PL';
+  onSaved?: () => void;
 } = {}) => {
-  render(<SensesResults term={term} senses={senses} language={language} />);
+  render(<SensesResults term={term} senses={senses} language={language} onSaved={onSaved} />);
 
   return {
+    onSaved,
     saveButton: () => screen.getByRole('button', { name: /save to draft/i }),
     senseOption: (id: string) =>
       screen.getByRole('option', { name: id === 'a' ? 'first translation' : 'second translation' }),
@@ -143,7 +146,7 @@ describe('SensesResults', () => {
         resolveSave = resolve;
       }),
     );
-    const { saveButton } = renderScreen({ language: 'PL' });
+    const { saveButton, onSaved } = renderScreen({ language: 'PL' });
     const button = saveButton();
     await user.click(button);
     expect(button).toBeDisabled();
@@ -151,13 +154,15 @@ describe('SensesResults', () => {
     expect(screen.getByRole('combobox', { name: 'Note type' })).toBeDisabled();
     await user.click(button);
     expect(saveDraftMock).toHaveBeenCalledTimes(1);
+    expect(onSaved).not.toHaveBeenCalled();
 
     await act(async () => resolveSave(1));
     expect(button).not.toBeDisabled();
+    expect(onSaved).toHaveBeenCalledTimes(1);
   });
 
-  it('saves selected sense and keeps results available', async () => {
-    const { saveButton, senseOption } = renderScreen();
+  it('saves the selected sense and notifies the parent after success', async () => {
+    const { saveButton, senseOption, onSaved } = renderScreen();
 
     await user.click(senseOption('b'));
     await user.click(saveButton());
@@ -176,7 +181,7 @@ describe('SensesResults', () => {
 
     expect(toastSuccessMock).toHaveBeenCalled();
     expect(toastErrorMock).not.toHaveBeenCalled();
-    expect(screen.getByRole('listbox', { name: 'Senses list' })).toBeInTheDocument();
+    expect(onSaved).toHaveBeenCalledTimes(1);
   });
 
   it('shows the only English note type as disabled', () => {
@@ -218,7 +223,7 @@ describe('SensesResults', () => {
   it('shows an error and keeps the selection when save fails', async () => {
     saveDraftMock.mockRejectedValueOnce(new Error('boom'));
 
-    const { saveButton, senseOption } = renderScreen();
+    const { saveButton, senseOption, onSaved } = renderScreen();
 
     await user.click(senseOption('b'));
     await user.click(saveButton());
@@ -229,6 +234,7 @@ describe('SensesResults', () => {
 
     expect(screen.getByText(/Failed to save draft/i)).toBeInTheDocument();
     expectSelectedSense('b', true);
+    expect(onSaved).not.toHaveBeenCalled();
   });
 
   it('allows selecting a sense with keyboard (Enter/Space)', async () => {

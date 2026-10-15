@@ -17,6 +17,11 @@ export function useTermSearch() {
     setResult(null);
   };
 
+  const clearSearch = () => {
+    setTerm('');
+    setResult(null);
+  };
+
   const search = async () => {
     const normalized = term.trim();
     if (!normalized || submittingRef.current) return;
@@ -39,6 +44,7 @@ export function useTermSearch() {
     setTerm,
     language,
     changeLanguage,
+    clearSearch,
     result,
     pendingTerm,
     isSubmitting: pendingTerm !== null,

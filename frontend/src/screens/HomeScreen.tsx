@@ -6,8 +6,17 @@ import { SensesSkeleton } from '@/components/senses/SensesSkeleton';
 import { cn } from '@/lib/utils';
 
 export function HomeScreen() {
-  const { result, term, language, pendingTerm, isSubmitting, setTerm, changeLanguage, search } =
-    useTermSearch();
+  const {
+    result,
+    term,
+    language,
+    pendingTerm,
+    isSubmitting,
+    setTerm,
+    changeLanguage,
+    clearSearch,
+    search,
+  } = useTermSearch();
 
   return (
     <section
@@ -42,7 +51,12 @@ export function HomeScreen() {
           <SensesSkeleton />
         </>
       ) : result ? (
-        <SensesResults term={result.term} senses={result.senses} language={result.langPair} />
+        <SensesResults
+          term={result.term}
+          senses={result.senses}
+          language={result.langPair}
+          onSaved={clearSearch}
+        />
       ) : null}
     </section>
   );

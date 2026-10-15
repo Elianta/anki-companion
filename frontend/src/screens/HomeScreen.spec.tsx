@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 
@@ -7,6 +7,7 @@ import { disambiguate, type DisambiguateResult, type Sense } from '@/lib/llm';
 import { useSessionStore } from '@/stores/session';
 import { isRateLimitError, formatRateLimitMessage } from '@/services/api';
 import { toast } from 'sonner';
+import { saveDraftFromSense } from '@/services/draft-storage';
 
 const mockNavigate = vi.fn();
 
@@ -22,6 +23,11 @@ const toastErrorMock = vi.mocked(toast.error);
 const toastWarningMock = vi.mocked(toast.warning);
 
 vi.mock('@/services/api');
+vi.mock('@/services/draft-storage', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/services/draft-storage')>()),
+  saveDraftFromSense: vi.fn(),
+}));
+const saveDraftMock = vi.mocked(saveDraftFromSense);
 
 const renderScreen = () => render(<HomeScreen />);
 const getTermInput = () => screen.getByRole('textbox');
@@ -60,6 +66,8 @@ describe('HomeScreen', () => {
     disambiguateMock.mockReset();
     toastErrorMock.mockReset();
     toastWarningMock.mockReset();
+    saveDraftMock.mockReset();
+    saveDraftMock.mockResolvedValue(1);
     vi.mocked(isRateLimitError).mockReset();
     vi.mocked(formatRateLimitMessage).mockReset();
   });
@@ -229,6 +237,55 @@ describe('HomeScreen', () => {
       'true',
     );
     expect(screen.queryByText('No senses found for focus')).not.toBeInTheDocument();
+  });
+
+  it('clears the input and senses only after saving succeeds and preserves the language', async () => {
+    useSessionStore.setState({ language: 'PL' });
+    mockSuccessfulSearch({
+      term: 'zamek',
+      langPair: 'PL',
+      senses: [{ id: 'lock', translationRU: 'замок' }],
+    });
+    let resolveSave!: (id: number) => void;
+    saveDraftMock.mockReturnValue(
+      new Promise((resolve) => {
+        resolveSave = resolve;
+      }),
+    );
+    const { input, languageSelect } = setup();
+    await user.click(input);
+    await user.paste('zamek [do drzwi]');
+    await user.keyboard('{Enter}');
+    expect(await screen.findByRole('option', { name: 'замок' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Save to draft' }));
+    expect(input).toHaveValue('zamek [do drzwi]');
+    expect(screen.getByRole('listbox', { name: 'Senses list' })).toBeInTheDocument();
+    expect(saveDraftMock).toHaveBeenCalledWith(
+      expect.objectContaining({ term: 'zamek', language: 'PL' }),
+      { backgroundGenerate: true },
+    );
+
+    await act(async () => resolveSave(1));
+    expect(input).toHaveValue('');
+    expect(screen.queryByRole('region', { name: 'Search results' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save to draft' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /What do you want/ })).toBeInTheDocument();
+    expect(languageSelect).toHaveTextContent('PL');
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('keeps the input and selected sense when saving fails', async () => {
+    mockSuccessfulSearch({ senses: [{ id: 'focus', translationRU: 'фокус' }] });
+    saveDraftMock.mockRejectedValueOnce(new Error('Storage unavailable'));
+    const { input } = setup();
+    await user.type(input, 'focus{enter}');
+    await user.click(await screen.findByRole('button', { name: 'Save to draft' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to save draft.');
+    expect(input).toHaveValue('focus');
+    expect(screen.getByRole('option', { name: 'фокус' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('button', { name: 'Save to draft' })).toBeEnabled();
   });
 
   it('starts with an empty search after remounting the screen', async () => {

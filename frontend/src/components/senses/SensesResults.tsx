@@ -15,10 +15,12 @@ export function SensesResults({
   senses,
   term,
   language,
+  onSaved,
 }: {
   senses: Sense[];
   term: string;
   language: LangPair;
+  onSaved: () => void;
 }) {
   const [selectedSenseId, setSelectedSenseId] = useState(senses[0]?.id);
   const [noteType, setNoteType] = useState<DraftNoteType>(getDefaultNoteType(language));
@@ -38,6 +40,7 @@ export function SensesResults({
         { backgroundGenerate: true },
       );
       toast.success('Draft saved. Generating card in the background.');
+      onSaved();
     } catch (error) {
       console.warn('Failed to save draft', error);
       setError(showRequestError(error, 'Failed to save draft. Please try again.'));
